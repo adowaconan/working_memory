@@ -101,29 +101,39 @@ for sub in subs:
     #clf.append(('vectorizer',Vectorizer()))
     clf.append(('scaler',StandardScaler()))
     estimator = SVC(kernel='linear',max_iter=int(-1),random_state=12345,class_weight='balanced')
-    estimator = LinearModel(estimator)
+    #estimator = LinearModel(estimator)
     clf.append(('estimator',estimator))
     clf = Pipeline(clf)
     cv = KFold(n_splits=4,shuffle=True,random_state=12345)
     
-    td = SlidingEstimator(clf,scoring='roc_auc')
+    td = SlidingEstimator(clf,scoring='roc_auc',n_jobs=4)
     scores = cross_val_multiscore(td,data,labels,cv=cv,)
-    scores = np.mean(scores,axis=0)
+    scores_mean = np.mean(scores,axis=0)
+    scores_std = np.std(scores,axis=1)
     plt.close('all')
     fig,ax = plt.subplots(figsize=(20,6))
     time_picks = times[::50]
-    scores_picks = scores[::50]
+    scores_picks = scores_mean[::50]
+    scores_se = (scores_std/2)[::50]
     ax.plot(time_picks,scores_picks,label='scores')
+    ax.fill_between(time_picks,scores_picks-scores_se,scores_picks+scores_se,color='red',alpha=0.5)
     ax.axhline(0.5,color='k',linestyle='--',label='chance')
     ax.axvline(0,color='k',linestyle='--')
-    ax.set(xlabel='Time (Sec)',ylabel='ROC AUC',xlim=(-0.1,6),ylim=(0.45,0.85),title='subject_%d_load2load5_decoding_scores'%sub)
+    ax.set(xlabel='Time (Sec)',ylabel='ROC AUC',xlim=(-0.1,6),ylim=(0.35,1.),title='subject_%d_load2load5_decoding_scores'%sub)
     ax.legend()
     fig.savefig('results/subject_%d_load2load5_decoding_scores.png'%sub,dpi=300)
     plt.close('all')
     
     coef = []
+    clf = []
+    #clf.append(('vectorizer',Vectorizer()))
+    clf.append(('scaler',StandardScaler()))
+    estimator = SVC(kernel='linear',max_iter=int(-1),random_state=12345,class_weight='balanced')
+    estimator = LinearModel(estimator)
+    clf.append(('estimator',estimator))
+    clf = Pipeline(clf)
     for train,test in cv.split(data):
-        td = SlidingEstimator(clf,scoring='roc_auc')
+        td = SlidingEstimator(clf,scoring='roc_auc',n_jobs=4)
         td.fit(data[train],labels[train])
         coef_ = get_coef(td,'patterns_',inverse_transform=True)
         coef.append(coef_)
