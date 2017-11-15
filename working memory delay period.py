@@ -36,7 +36,7 @@ def make_clf():
     #clf.append(('vectorizer',Vectorizer()))
     clf.append(('scaler',StandardScaler()))
     estimator = SVC(kernel='linear',max_iter=int(-1),random_state=12345,class_weight='balanced')
-    #estimator = LinearModel(estimator)
+    estimator = LinearModel(estimator)
     clf.append(('estimator',estimator))
     clf = Pipeline(clf)
     return clf    
@@ -225,4 +225,15 @@ for sub in subs:
     ax.set(xlabel='Time (ms)',ylabel='ROC AUC',xlim=(-100,6000),ylim=(0.35,1.),title='subject_%d_load2load5_decoding_scores'%sub)
     ax.set(xticks=np.arange(-100,6000,400))
     ax.legend()
-    fig.savefig('results/subject_%d_load2load5_decoding_scores.png'%sub,dpi=300)
+    fig.savefig('working_memory\\results/subject_%d_load2load5_decoding_scores.png'%sub,dpi=300)
+
+
+    coef = []
+    for clfs_ in clfs:
+        coef_ = [get_coef(clf,'patterns_',inverse_transform=True) for clf in clfs_]
+        coef.append(coef_)
+    coef = np.array(coef)
+    evoked = mne.EvokedArray(coef.mean(1).T,info,tmin=times[0])
+    evoked.times = times[::n_]
+    evoked.save('subject_%d_load2load5_patterns-evo.fif'%sub,)
+    del evoked
