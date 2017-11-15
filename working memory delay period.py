@@ -31,7 +31,15 @@ def delay_onset(x,key='71'):
         return True
     else:
         return False
-    
+def make_clf():
+    clf = []
+    #clf.append(('vectorizer',Vectorizer()))
+    clf.append(('scaler',StandardScaler()))
+    estimator = SVC(kernel='linear',max_iter=int(-1),random_state=12345,class_weight='balanced')
+    #estimator = LinearModel(estimator)
+    clf.append(('estimator',estimator))
+    clf = Pipeline(clf)
+    return clf    
 os.chdir('D:\\working_memory\\')
 subs = np.arange(11,33)
 subs = np.setdiff1d(subs,np.array([24,27]))
@@ -142,7 +150,10 @@ subs = np.setdiff1d(subs,np.array([24,27]))
 #    del evoked
 #    #evoked.plot_joint(title='patterns')
 
-
+from tqdm import tqdm
+from sklearn import metrics
+import pickle
+n_ = 50
 for sub in subs:    
     epoch_fif = [f for f in os.listdir() if ('-epo.fif' in f) and ('suj%d_'%(sub) in f)]    
     epochs_1 = mne.read_epochs(epoch_fif[0])
@@ -157,27 +168,45 @@ for sub in subs:
     info = epochs.info
     del epochs
     
-    clf = []
-    #clf.append(('vectorizer',Vectorizer()))
-    clf.append(('scaler',StandardScaler()))
-    estimator = SVC(kernel='linear',max_iter=int(-1),random_state=12345,class_weight='balanced')
-    #estimator = LinearModel(estimator)
-    clf.append(('estimator',estimator))
-    clf = Pipeline(clf)
     cv = KFold(n_splits=4,shuffle=True,random_state=12345)
+    size = len(times[::n_])
+    scores=np.zeros((size,size,4))
+    clfs = []
+    print('cv diagonal\n')
+    for idx_train,_ in tqdm(enumerate(times[::n_]),desc='diag loop'):
+        scores_ = []
+        clfs_ = []
+        for train_,test_ in cv.split(data):
+            clf = make_clf()
+            clf.fit(data[train_,:,idx_train],labels[train_])
+            clfs_.append(clf)
+            scores_.append(metrics.roc_auc_score(labels[test_],
+                                    clf.predict(data[test_,:,idx_train])))
+        scores[idx_train,idx_train,:] = scores_
+        clfs.append(clfs_)
     
-    time_gen = GeneralizingEstimator(clf,scoring='roc_auc',)
-    scores = cross_val_multiscore(time_gen,data,labels,cv=cv,n_jobs=-1,verbose=2)
-    scores_mean = np.mean(scores,axis=0)
-    scores_std = np.std(scores,axis=1)
-    
+    print('cv different time samples\n')
+    for idx_train,_ in tqdm(enumerate(times[::n_]),desc='off diag'):
+        for idx_test,_ in enumerate(times[::n_]):
+            if idx_train != idx_test:
+                scores_ = []
+                for ii,(train_,test_) in enumerate(cv.split(data)):
+                    clf = clfs[idx_train][ii]
+                    
+                    scores_.append(metrics.roc_auc_score(labels[test_],
+                                            clf.predict(data[test_,:,idx_test])))
+                    
+                scores[idx_train,idx_test,:] = scores_
+    pickle.dump(scores,open('D:\\working_memory\\subject%d.p'%sub,'wb'))
     plt.close('all')
-    fig, ax = plt.subplots(figsize=(10,10))
-    im = ax.imshow(scores_mean,interpolation='lanczos',origin='lower',
-                  cmap='coolwarm',vmin=0.,vmax=1.)
-    ax.set(xlabel='Testing Time (sec)',ylabel='Training Time (sec)',
+    fig, ax = plt.subplots(figsize=(12,10))
+    im = ax.imshow(scores.mean(-1),interpolation=None,origin='lower',
+                  cmap='winter',vmin=0.5,vmax=.9,extent=[-100,6000,-100,6000])
+    ax.set(xlabel='Training Time (sec)',ylabel='Testing Time (sec)',
           title='Temporal Generalization: subject %d, load2 vs load5'%sub)
+    #ax.set(xticks=times[::n_],yticks=times[::n_])
     ax.axvline(0,color='k')
     ax.axhline(0,color='k')
-    plt.colorbar(im,ax=ax)
+    cbar=plt.colorbar(im,ax=ax)
+    cbar.ax.set_title('ROC AUC scores')
     fig.savefig('D:\\working_memory\\working_memory\\results\\subject_%d_load2load5_generalization_scores.png'%sub,dpi=300)
