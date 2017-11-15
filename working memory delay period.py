@@ -33,7 +33,7 @@ def delay_onset(x,key='71'):
         return False
 def make_clf():
     clf = []
-    #clf.append(('vectorizer',Vectorizer()))
+#    clf.append(('vectorizer',Vectorizer()))
     clf.append(('scaler',StandardScaler()))
     estimator = SVC(kernel='linear',max_iter=int(-1),random_state=12345,class_weight='balanced')
     estimator = LinearModel(estimator)
@@ -169,34 +169,46 @@ for sub in subs:
     del epochs
     
     cv = KFold(n_splits=4,shuffle=True,random_state=12345)
-    size = len(times[::n_])
+#    c = int(n_/2)
+    c=0
+    size = len(times[c::n_])
     scores=np.zeros((size,size,4))
+    times_ = times[c::n_]
+    index_iterator = np.arange(len(times))[c::n_]
+    
     clfs = []
     print('cv diagonal\n')
-    for idx_train,_ in tqdm(enumerate(times[::n_]),desc='diag loop'):
+    for kk,idx_train in tqdm(enumerate(index_iterator),desc='diag loop'):
         scores_ = []
         clfs_ = []
         for train_,test_ in cv.split(data):
             clf = make_clf()
+            last_ = np.arange(idx_train-c,idx_train+c+1)
+#            clf.fit(data[train_,:,idx_train-c:idx_train+c],labels[train_])
             clf.fit(data[train_,:,idx_train],labels[train_])
             clfs_.append(clf)
+            last_ = np.arange(idx_train-c,idx_train+c+1)
+#            scores_.append(metrics.roc_auc_score(labels[test_],
+#                                    clf.predict(data[test_,:,idx_train-c:idx_train+c])))
             scores_.append(metrics.roc_auc_score(labels[test_],
                                     clf.predict(data[test_,:,idx_train])))
-        scores[idx_train,idx_train,:] = scores_
+        scores[kk,kk,:] = scores_
         clfs.append(clfs_)
     
     print('cv different time samples\n')
-    for idx_train,_ in tqdm(enumerate(times[::n_]),desc='off diag'):
-        for idx_test,_ in enumerate(times[::n_]):
+    for idx_v,idx_train in tqdm(enumerate(index_iterator),desc='off diag'):
+        for idx_h,idx_test in enumerate(index_iterator):
             if idx_train != idx_test:
                 scores_ = []
                 for ii,(train_,test_) in enumerate(cv.split(data)):
-                    clf = clfs[idx_train][ii]
+                    clf = clfs[idx_v][ii]
                     
+#                    scores_.append(metrics.roc_auc_score(labels[test_],
+#                                            clf.predict(data[test_,:,idx_test-c:idx_test+c])))
                     scores_.append(metrics.roc_auc_score(labels[test_],
                                             clf.predict(data[test_,:,idx_test])))
                     
-                scores[idx_test,idx_train,:] = scores_
+                scores[idx_v,idx_h,:] = scores_
     pickle.dump(scores,open('D:\\working_memory\\subject%d.p'%sub,'wb'))
     plt.close('all')
     fig, ax = plt.subplots(figsize=(12,10))
@@ -204,7 +216,7 @@ for sub in subs:
                   cmap='winter',vmin=0.5,vmax=.9,extent=[-100,6000,-100,6000])
     ax.set(xlabel='Testing Time (ms)',ylabel='Training Time (ms)',
           title='Temporal Generalization: subject %d, load2 vs load5'%sub)
-    #ax.set(xticks=times[::n_],yticks=times[::n_])
+
     ax.axvline(0,color='k')
     ax.axhline(0,color='k')
     cbar=plt.colorbar(im,ax=ax)
@@ -215,7 +227,7 @@ for sub in subs:
     scores_std = np.std(scores.diagonal(),axis=0)
     plt.close('all')
     fig,ax = plt.subplots(figsize=(20,6))
-    time_picks = times[::50] * info['sfreq']
+    time_picks = times_ * info['sfreq']
     scores_picks = scores_mean
     scores_se = (scores_std/2)
     ax.plot(time_picks,scores_picks,label='scores')
@@ -233,7 +245,16 @@ for sub in subs:
         coef_ = [get_coef(clf,'patterns_',inverse_transform=True) for clf in clfs_]
         coef.append(coef_)
     coef = np.array(coef)
-    evoked = mne.EvokedArray(coef.mean(1).T,info,tmin=times[0])
-    evoked.times = times[::n_]
+    if len(coef.shape) > 2:
+        
+        coef = np.swapaxes(coef,0,1)
+        coef = coef.mean(0)
+        coef = np.swapaxes(coef,0,1)
+        coef = coef.reshape(coef.shape[0],-1)
+    else:
+        coef = coef.mean(1)
+        coef = coef.T
+    evoked = mne.EvokedArray(coef,info,tmin=times_[0])
+    evoked.times = times_
     evoked.save('subject_%d_load2load5_patterns-evo.fif'%sub,)
     del evoked
