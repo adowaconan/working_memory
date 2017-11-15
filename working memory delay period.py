@@ -196,13 +196,13 @@ for sub in subs:
                     scores_.append(metrics.roc_auc_score(labels[test_],
                                             clf.predict(data[test_,:,idx_test])))
                     
-                scores[idx_train,idx_test,:] = scores_
+                scores[idx_test,idx_train,:] = scores_
     pickle.dump(scores,open('D:\\working_memory\\subject%d.p'%sub,'wb'))
     plt.close('all')
     fig, ax = plt.subplots(figsize=(12,10))
     im = ax.imshow(scores.mean(-1),interpolation=None,origin='lower',
                   cmap='winter',vmin=0.5,vmax=.9,extent=[-100,6000,-100,6000])
-    ax.set(xlabel='Training Time (sec)',ylabel='Testing Time (sec)',
+    ax.set(xlabel='Testing Time (ms)',ylabel='Training Time (ms)',
           title='Temporal Generalization: subject %d, load2 vs load5'%sub)
     #ax.set(xticks=times[::n_],yticks=times[::n_])
     ax.axvline(0,color='k')
@@ -210,3 +210,19 @@ for sub in subs:
     cbar=plt.colorbar(im,ax=ax)
     cbar.ax.set_title('ROC AUC scores')
     fig.savefig('D:\\working_memory\\working_memory\\results\\subject_%d_load2load5_generalization_scores.png'%sub,dpi=300)
+
+    scores_mean = np.mean(scores.diagonal(),axis=0)
+    scores_std = np.std(scores.diagonal(),axis=0)
+    plt.close('all')
+    fig,ax = plt.subplots(figsize=(20,6))
+    time_picks = times[::50] * info['sfreq']
+    scores_picks = scores_mean
+    scores_se = (scores_std/2)
+    ax.plot(time_picks,scores_picks,label='scores')
+    ax.fill_between(time_picks,scores_picks-scores_se,scores_picks+scores_se,color='red',alpha=0.5)
+    ax.axhline(0.5,color='k',linestyle='--',label='chance')
+    ax.axvline(0,color='k',linestyle='--')
+    ax.set(xlabel='Time (ms)',ylabel='ROC AUC',xlim=(-100,6000),ylim=(0.35,1.),title='subject_%d_load2load5_decoding_scores'%sub)
+    ax.set(xticks=np.arange(-100,6000,400))
+    ax.legend()
+    fig.savefig('results/subject_%d_load2load5_decoding_scores.png'%sub,dpi=300)
