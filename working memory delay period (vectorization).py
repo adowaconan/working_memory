@@ -48,7 +48,7 @@ subs = np.setdiff1d(subs,np.array([24,27]))
 from tqdm import tqdm
 from sklearn import metrics
 import pickle
-n_ = 100
+n_ = 50
 c = int(n_/2)
 for sub in subs:    
     epoch_fif = [f for f in os.listdir() if ('-epo.fif' in f) and ('suj%d_'%(sub) in f)]    
