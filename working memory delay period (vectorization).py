@@ -99,10 +99,16 @@ for sub in subs:
             if idx_train != idx_test:
                 scores_ = []
                 for jj,(train_,test_) in enumerate(cv.split(data)):
-                    clf = clfs[ii][jj]
-                    position_range_idx = np.arange(idx_test-c,idx_test+c)
-                    scores_.append(metrics.roc_auc_score(labels[test_],
-                                            clf.predict(data[test_][:][...,position_range_idx])))
+                    try:
+                        clf = clfs[ii][jj]
+                        position_range_idx = np.arange(idx_test-c,idx_test+c)
+                        scores_.append(metrics.roc_auc_score(labels[test_],
+                                                clf.predict(data[test_][:][...,position_range_idx])))
+                    except:
+                        clf = clfs[ii][jj]
+#                        position_range_idx = np.arange(idx_test-c,idx_test+c)
+                        scores_.append(metrics.roc_auc_score(labels[test_],
+                                                clf.predict(data[test_][:][...,idx_test-c:])))
                     
                 scores[ii,kk,:] = scores_
     pickle.dump(scores,open('D:\\working_memory\\subject%d.p'%sub,'wb'))
@@ -123,7 +129,7 @@ for sub in subs:
     scores_std = np.std(scores.diagonal(),axis=0)
     plt.close('all')
     fig,ax = plt.subplots(figsize=(20,6))
-    time_picks = times[c::50] 
+    time_picks = times[c::n_] 
     scores_picks = scores_mean
     scores_se = (scores_std/2)
     ax.plot(time_picks,scores_picks,label='scores')
