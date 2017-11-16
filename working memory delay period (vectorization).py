@@ -76,12 +76,20 @@ for sub in subs:
         scores_ = []
         clfs_ = []
         for train_,test_ in cv.split(data):
-            clf = make_clf()
-            position_range_idx = np.arange(idx_train-c,idx_train+c)
-            clf.fit(data[train_][:][...,position_range_idx],labels[train_])
-            clfs_.append(clf)
-            scores_.append(metrics.roc_auc_score(labels[test_],
-                                    clf.predict(data[test_][:][...,position_range_idx])))
+            try:
+                clf = make_clf()
+                position_range_idx = np.arange(idx_train-c,idx_train+c)
+                clf.fit(data[train_][:][...,position_range_idx],labels[train_])
+                clfs_.append(clf)
+                scores_.append(metrics.roc_auc_score(labels[test_],
+                                        clf.predict(data[test_][:][...,position_range_idx])))
+            except:
+                clf = make_clf()
+#                position_range_idx = np.arange(idx_train-c,idx_train+c)
+                clf.fit(data[train_][:][...,idx_train-c:],labels[train_])
+                clfs_.append(clf)
+                scores_.append(metrics.roc_auc_score(labels[test_],
+                                        clf.predict(data[test_][:][...,idx_train-c:])))
         scores[ii,ii,:] = scores_
         clfs.append(clfs_)
     
