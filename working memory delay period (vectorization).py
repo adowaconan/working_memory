@@ -69,7 +69,7 @@ for sub in subs:
     size = len(times[c::n_])
     scores=np.zeros((size,size,4))
     position_index = np.arange(times[0],times[-2],n_) + (n_ * 2 )
-    position_index = position_index.astype(int)
+    position_index = position_index.astype(int)[:-1]
     clfs = []
     print('cv diagonal\n')
     for ii,idx_train in tqdm(enumerate(position_index),desc='diag loop'):
@@ -147,7 +147,9 @@ for sub in subs:
         coef_ = [get_coef(clf,'patterns_',inverse_transform=True) for clf in clfs_]
         coef.append(coef_)
     coef = np.array(coef)
-    evoked = mne.EvokedArray(np.mean(coef,axis=1).T,info,tmin=times[0])
-    evoked.times = times[::n_]
+    coef = np.swapaxes(coef,0,2)
+    coef = coef.reshape(61,4,-1)
+    evoked = mne.EvokedArray(np.mean(coef,axis=1),info,tmin=times[0])
+    evoked.times = times[:-101]
     evoked.save('D:\\working_memory\\vectorization\\subject_%d_load2load5_patterns-evo.fif'%sub,)
     del evoked
