@@ -135,7 +135,30 @@ for sub in subs:
     evoked.times = times[::n_]
     evoked.save('sample_time/subject_%d_load2load5_patterns-evo.fif'%sub,)
     del evoked
+import matplotlib
+font = {'weight':'bold',
+        'size':16}
+matplotlib.rc('font',**font)
+os.chdir('D:\\working_memory\\')
+subs = np.arange(11,33)
+subs = np.setdiff1d(subs,np.array([24,27]))
+save_dir = 'D:\\working_memory\\working_memory\\results\\'
+for sub in subs:
+    evoked = mne.read_evokeds('sample_time/subject_%d_load2load5_patterns-evo.fif'%sub,)
+    evoked = evoked[0]
+    evoked.times = np.arange(-100,6001,50)
 
+    plt.close('all')
+    fig,ax = plt.subplots(figsize=(12,8))
+    mne.viz.plot_evoked_image(evoked,axes=ax)
+    fig.savefig(save_dir+'sampled_time\\subject_%d_load2load5_difference_image.png'%sub,dpi=300)
+
+    evoked.times = np.arange(-0.1,6.001,0.05)[:-1]
+    a,b=-10,10
+    fig = mne.viz.plot_evoked_joint(evoked,
+                                    topomap_args={'scaling_time':1e3,'size':1,
+                                                 'vmin':a,'vmax':b},)
+    fig.savefig(save_dir+'sampled_time\\subject_%d_load2load5_generalization_scores.png'%sub,dpi=300)
 
 
 
