@@ -115,7 +115,7 @@ for sub in subs:
     plt.close('all')
     fig, ax = plt.subplots(figsize=(12,10))
     im = ax.imshow(scores.mean(-1),interpolation=None,origin='lower',
-                  cmap='winter',vmin=0.5,vmax=.9,extent=[-100,6000,-100,6000])
+                  cmap='winter',vmin=0.5,vmax=.8,extent=[-100,6000,-100,6000])
     ax.set(xlabel='Testing Time (ms)',ylabel='Training Time (ms)',
           title='Temporal Generalization: subject %d, load2 vs load5'%sub)
     
@@ -136,7 +136,7 @@ for sub in subs:
     ax.fill_between(time_picks,scores_picks-scores_se,scores_picks+scores_se,color='red',alpha=0.5)
     ax.axhline(0.5,color='k',linestyle='--',label='chance')
     ax.axvline(0,color='k',linestyle='--')
-    ax.set(xlabel='Time (ms)',ylabel='ROC AUC',xlim=(-100,6000),ylim=(0.35,1.),title='subject_%d_load2load5_decoding_scores'%sub)
+    ax.set(xlabel='Time (ms)',ylabel='ROC AUC',xlim=(-100,5900),ylim=(0.35,1.),title='subject_%d_load2load5_decoding_scores'%sub)
     ax.set(xticks=np.arange(-100,6000,400))
     ax.legend()
     fig.savefig('working_memory\\results/vectorization/subject_%d_load2load5_decoding_scores.png'%sub,dpi=300)
