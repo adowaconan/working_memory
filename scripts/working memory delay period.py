@@ -158,7 +158,7 @@ for sub in subs:
     fig = mne.viz.plot_evoked_joint(evoked,
                                     topomap_args={'scaling_time':1e3,'size':1,
                                                  'vmin':a,'vmax':b},)
-    fig.savefig(save_dir+'sampled_time\\subject_%d_load2load5_generalization_scores.png'%sub,dpi=300)
+    fig.savefig(save_dir+'sampled_time\\subject_%d_load2load5__difference_joint.png'%sub,dpi=300)
 
 
 
