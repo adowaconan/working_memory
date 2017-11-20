@@ -112,6 +112,7 @@ for sub in subs:
                     
                 scores[ii,kk,:] = scores_
     pickle.dump(scores,open('D:\\working_memory\\subject%d.p'%sub,'wb'))
+#    scores = pickle.load(open('D:\\working_memory\\subject%d.p'%sub,'rb'))
     plt.close('all')
     fig, ax = plt.subplots(figsize=(12,10))
     im = ax.imshow(scores.mean(-1),interpolation=None,origin='lower',
@@ -176,4 +177,4 @@ for sub in subs:
     fig = mne.viz.plot_evoked_joint(evoked,
                                     topomap_args={'scaling_time':1e3,'size':1,
                                                  'vmin':a,'vmax':b},)
-    fig.savefig(save_dir+'vectorization\\subject_%d_load2load5_generalization_scores.png'%sub,dpi=300)
+    fig.savefig(save_dir+'vectorization\\subject_%d_load2load5_patterns.png'%sub,dpi=300)
