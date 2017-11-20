@@ -16,6 +16,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.svm import SVC
 from sklearn.model_selection import KFold
+"""Below are a few helper functions I no longer use"""
 def exclude_rows(x):
     if re.compile('stimulus', re.IGNORECASE).search(x):
         return False
@@ -31,59 +32,67 @@ def delay_onset(x,key='71'):
         return True
     else:
         return False
+# I use this function
 def make_clf():
+    """
+    Takes no argument, and return a pipeline of linear classifier, containing a scaler and a linear estimator
+    """
     clf = []
     #clf.append(('vectorizer',Vectorizer()))
     clf.append(('scaler',StandardScaler()))
     estimator = SVC(kernel='linear',max_iter=int(-1),random_state=12345,class_weight='balanced')
-    estimator = LinearModel(estimator)
+    estimator = LinearModel(estimator) # extra step for decoding patterns
     clf.append(('estimator',estimator))
     clf = Pipeline(clf)
     return clf    
 os.chdir('D:\\working_memory\\')
 subs = np.arange(11,33)
-subs = np.setdiff1d(subs,np.array([24,27]))
+subs = np.setdiff1d(subs,np.array([24,27])) # take out subject 24 and 27
 
 
 from tqdm import tqdm
 from sklearn import metrics
 import pickle
-n_ = 50
+n_ = 50 # 50 ms window/step
 for sub in subs:    
-    epoch_fif = [f for f in os.listdir() if ('-epo.fif' in f) and ('suj%d_'%(sub) in f)]    
+    epoch_fif = [f for f in os.listdir() if ('-epo.fif' in f) and ('suj%d_'%(sub) in f)]  # list of two epochs  
     epochs_1 = mne.read_epochs(epoch_fif[0])
     epochs_2 = mne.read_epochs(epoch_fif[1])
-    epochs = mne.concatenate_epochs([epochs_1,epochs_2])
-    epochs.event_id = {'load_2':2,'load_5':5}
-    epochs.pick_types(eeg=True,eog=False)
+    epochs = mne.concatenate_epochs([epochs_1,epochs_2]) # concatenate two epochs
+    epochs.event_id = {'load_2':2,'load_5':5}# make sure the code name of the events are correct
+    epochs.pick_types(eeg=True,eog=False) # take out eog channels
     
-    labels = np.array(epochs.events[:,-1] == 2,dtype=int)
+    labels = np.array(epochs.events[:,-1] == 2,dtype=int) # load 2 is positive
     data = epochs.get_data()
     times = epochs.times
     info = epochs.info
-    times = times * info['sfreq']
+    times = times * info['sfreq'] # convert time from second to ms
     del epochs
     
-    cv = KFold(n_splits=4,shuffle=True,random_state=12345)
+    cv = KFold(n_splits=4,shuffle=True,random_state=12345)# 4 folds cross validation
+    # an algorithm to make position indeces for each segment of the decoding
+    # in short, we should have 123 segments for a 6000 ms long epochs, using a 50 ms window
     size = len(times[::n_])
     scores=np.zeros((size,size,4))
     position_index = np.arange(times[0],times[-1],n_) + (n_ * 2)
     position_index = position_index.astype(int)
     clfs = []
+    # train and test at the same time
     print('cv diagonal\n')
     for ii,idx_train in tqdm(enumerate(position_index),desc='diag loop'):
         scores_ = []
         clfs_ = []
         for train_,test_ in cv.split(data):
-            clf = make_clf()
+            clf = make_clf() # always make a new, untrained classifier before training
             clf.fit(data[train_,:,idx_train],labels[train_])
-            clfs_.append(clf)
+            clfs_.append(clf) # save the classifier at each time
             scores_.append(metrics.roc_auc_score(labels[test_],
                                     clf.predict(data[test_,:,idx_train])))
         scores[ii,ii,:] = scores_
         clfs.append(clfs_)
     
     print('cv different time samples\n')
+    # train the classifier at time A and test the trained classifier at time B
     for ii,idx_train in tqdm(enumerate(position_index),desc='off diag loop'):
         for kk,idx_test in enumerate(position_index):
             if idx_train != idx_test:
@@ -97,6 +106,13 @@ for sub in subs:
                 scores[ii,kk,:] = scores_
     pickle.dump(scores,open('D:\\working_memory\\subject%d.p'%sub,'wb'))
     plt.close('all')
+    """
+    Figure 1: time generalization plot. 
+    
+    A grid of training and testing time. The color indicates the decoding score.
+    A high score means the trained model (wherever it was trained) can predict load 2 and load 5 labels using just the signals
+    In other words, the signals might similar to the where the model was trained.
+    """
     fig, ax = plt.subplots(figsize=(12,10))
     im = ax.imshow(scores.mean(-1),interpolation=None,origin='lower',
                   cmap='winter',vmin=0.5,vmax=.8,extent=[-100,6000,-100,6000])
@@ -109,6 +125,12 @@ for sub in subs:
     cbar.ax.set_title('ROC AUC scores')
     fig.savefig('D:\\working_memory\\working_memory\\results\\sampled_time\\subject_%d_load2load5_generalization_scores.png'%sub,dpi=300)
 
+    """
+    Figure 2: time decoding scores
+    
+    Train and test at the same time.
+    Higher score means the linear classifier is able to distinguish load 2 and load 5 using only the signals.
+    """
     scores_mean = np.mean(scores.diagonal(),axis=0)
     scores_std = np.std(scores.diagonal(),axis=0)
     plt.close('all')
@@ -125,7 +147,7 @@ for sub in subs:
     ax.legend()
     fig.savefig('working_memory\\results/sampled_time/subject_%d_load2load5_decoding_scores.png'%sub,dpi=300)
 
-
+    
     coef = []
     for clfs_ in clfs:
         coef_ = [get_coef(clf,'patterns_',inverse_transform=True) for clf in clfs_]
@@ -147,7 +169,12 @@ for sub in subs:
     evoked = mne.read_evokeds('sample_time/subject_%d_load2load5_patterns-evo.fif'%sub,)
     evoked = evoked[0]
     evoked.times = np.arange(-100,6001,50)
-
+    """
+    Figure 3: decoding patterns
+    
+    Train and test at the same time.
+    Higher flatuation means bigger difference in terms of amplitude between load 2 and load 5 at the given time.
+    """
     plt.close('all')
     fig,ax = plt.subplots(figsize=(12,8))
     mne.viz.plot_evoked_image(evoked,axes=ax)

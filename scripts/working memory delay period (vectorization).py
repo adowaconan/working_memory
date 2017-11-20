@@ -16,6 +16,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.svm import SVC
 from sklearn.model_selection import KFold
+"""Below are a few helper functions I no longer use"""
 def exclude_rows(x):
     if re.compile('stimulus', re.IGNORECASE).search(x):
         return False
@@ -31,12 +32,16 @@ def delay_onset(x,key='71'):
         return True
     else:
         return False
+# I use this function
 def make_clf():
+    """
+    Takes no argument, and return a pipeline of linear classifier, containing a scaler and a linear estimator
+    """
     clf = []
-    clf.append(('vectorizer',Vectorizer()))
+    clf.append(('vectorizer',Vectorizer())) # vectorize the 3D matrix along the last 2 dimensions
     clf.append(('scaler',StandardScaler()))
     estimator = SVC(kernel='linear',max_iter=int(-1),random_state=12345,class_weight='balanced')
-    estimator = LinearModel(estimator)
+    estimator = LinearModel(estimator) # extra step for decoding patterns
     clf.append(('estimator',estimator))
     clf = Pipeline(clf)
     return clf    
@@ -48,8 +53,8 @@ subs = np.setdiff1d(subs,np.array([24,27]))
 from tqdm import tqdm
 from sklearn import metrics
 import pickle
-n_ = 50
-c = int(n_/2)
+n_ = 50 # moving time window
+c = int(n_/2) # center the position indeces
 for sub in subs:    
     epoch_fif = [f for f in os.listdir() if ('-epo.fif' in f) and ('suj%d_'%(sub) in f)]    
     epochs_1 = mne.read_epochs(epoch_fif[0])
@@ -76,14 +81,14 @@ for sub in subs:
         scores_ = []
         clfs_ = []
         for train_,test_ in cv.split(data):
-            try:
+            try: # if not the last window, the shape of the training matrix is regular
                 clf = make_clf()
                 position_range_idx = np.arange(idx_train-c,idx_train+c)
                 clf.fit(data[train_][:][...,position_range_idx],labels[train_])
                 clfs_.append(clf)
                 scores_.append(metrics.roc_auc_score(labels[test_],
                                         clf.predict(data[test_][:][...,position_range_idx])))
-            except:
+            except:# if is the last window, the shape of the training matrix is not regular
                 clf = make_clf()
 #                position_range_idx = np.arange(idx_train-c,idx_train+c)
                 clf.fit(data[train_][:][...,idx_train-c:],labels[train_])
@@ -113,6 +118,13 @@ for sub in subs:
                 scores[ii,kk,:] = scores_
     pickle.dump(scores,open('D:\\working_memory\\subject%d.p'%sub,'wb'))
 #    scores = pickle.load(open('D:\\working_memory\\subject%d.p'%sub,'rb'))
+    """
+    Figure 1: time generalization plot. 
+    
+    A grid of training and testing time. The color indicates the decoding score.
+    A high score means the trained model (wherever it was trained) can predict load 2 and load 5 labels using just the signals
+    In other words, the signals might similar to the where the model was trained.
+    """
     plt.close('all')
     fig, ax = plt.subplots(figsize=(12,10))
     im = ax.imshow(scores.mean(-1),interpolation=None,origin='lower',
@@ -125,7 +137,12 @@ for sub in subs:
     cbar=plt.colorbar(im,ax=ax)
     cbar.ax.set_title('ROC AUC scores')
     fig.savefig('D:\\working_memory\\working_memory\\results\\vectorization\\subject_%d_load2load5_generalization_scores.png'%sub,dpi=300)
-
+    """
+    Figure 2: time decoding scores
+    
+    Train and test at the same time.
+    Higher score means the linear classifier is able to distinguish load 2 and load 5 using only the signals.
+    """
     scores_mean = np.mean(scores.diagonal(),axis=0)
     scores_std = np.std(scores.diagonal(),axis=0)
     plt.close('all')
@@ -171,7 +188,12 @@ for sub in subs:
     fig,ax = plt.subplots(figsize=(12,8))
     mne.viz.plot_evoked_image(evoked,axes=ax)
     fig.savefig(save_dir+'vectorization\\subject_%d_load2load5_difference_image.png'%sub,dpi=300)
-
+    """
+    Figure 3: decoding patterns
+    
+    Train and test at the same time.
+    Higher flatuation means bigger difference in terms of amplitude between load 2 and load 5 at the given time.
+    """
     evoked.times = np.arange(-0.1,6.001,0.001)[:-51]
     a,b=-10,10
     fig = mne.viz.plot_evoked_joint(evoked,
