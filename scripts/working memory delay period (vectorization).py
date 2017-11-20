@@ -116,7 +116,7 @@ for sub in subs:
     plt.close('all')
     fig, ax = plt.subplots(figsize=(12,10))
     im = ax.imshow(scores.mean(-1),interpolation=None,origin='lower',
-                  cmap='winter',vmin=0.5,vmax=.8,extent=[-100,6000,-100,6000])
+                  cmap='winter',vmin=0.5,vmax=.7,extent=[-100,6000,-100,6000])
     ax.set(xlabel='Testing Time (ms)',ylabel='Training Time (ms)',
           title='Temporal Generalization: subject %d, load2 vs load5'%sub)
     
