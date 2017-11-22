@@ -67,6 +67,7 @@ for sub in subs:
     times = epochs.times
     info = epochs.info
     times = times * info['sfreq'] # convert time from second to ms
+    ch_names = epochs.ch_names
     del epochs
     
     cv = KFold(n_splits=4,shuffle=True,random_state=12345)# 4 folds cross validation
@@ -104,7 +105,7 @@ for sub in subs:
                                             clf.predict(data[test_,:,idx_test])))
                     
                 scores[ii,kk,:] = scores_
-    pickle.dump(scores,open('D:\\working_memory\\subject%d.p'%sub,'wb'))
+    pickle.dump(scores,open('D:\\working_memory\\subject%d_timeSampling.p'%sub,'wb'))
     plt.close('all')
     """
     Figure 1: time generalization plot. 
@@ -176,8 +177,9 @@ for sub in subs:
     Higher flatuation means bigger difference in terms of amplitude between load 2 and load 5 at the given time.
     """
     plt.close('all')
-    fig,ax = plt.subplots(figsize=(12,8))
-    mne.viz.plot_evoked_image(evoked,axes=ax)
+    fig,ax = plt.subplots(figsize=(12,15))
+    fig=mne.viz.plot_evoked_image(evoked,axes=ax)
+    fig.axes[0].set(yticks=np.arange(len(evoked.ch_names)),yticklabels=evoked.ch_names)
     fig.savefig(save_dir+'sampled_time\\subject_%d_load2load5_difference_image.png'%sub,dpi=300)
 
     evoked.times = np.arange(-0.1,6.001,0.05)[:-1]

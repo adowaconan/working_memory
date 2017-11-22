@@ -67,7 +67,7 @@ for sub in subs:
     data = epochs.get_data()
     info = epochs.info
     times = epochs.times * info['sfreq']
-    
+    ch_names = epochs.ch_names
     del epochs
     
     cv = KFold(n_splits=4,shuffle=True,random_state=12345)
@@ -116,7 +116,7 @@ for sub in subs:
                                                 clf.predict(data[test_][:][...,idx_test-c:])))
                     
                 scores[ii,kk,:] = scores_
-    pickle.dump(scores,open('D:\\working_memory\\subject%d.p'%sub,'wb'))
+    pickle.dump(scores,open('D:\\working_memory\\subject%d_vectorization.p'%sub,'wb'))
 #    scores = pickle.load(open('D:\\working_memory\\subject%d.p'%sub,'rb'))
     """
     Figure 1: time generalization plot. 
@@ -185,8 +185,10 @@ for sub in subs:
     evoked.times = np.arange(-100,6001)[:-51]
 
     plt.close('all')
-    fig,ax = plt.subplots(figsize=(12,8))
-    mne.viz.plot_evoked_image(evoked,axes=ax)
+    fig,ax = plt.subplots(figsize=(12,15))
+    fig=mne.viz.plot_evoked_image(evoked,axes=ax)
+    fig.axes[0].set(yticks=np.arange(len(evoked.ch_names)),yticklabels=evoked.ch_names)
+
     fig.savefig(save_dir+'vectorization\\subject_%d_load2load5_difference_image.png'%sub,dpi=300)
     """
     Figure 3: decoding patterns
