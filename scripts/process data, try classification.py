@@ -69,9 +69,9 @@ for n in range(len(files_vhdr)):
     reject={'eog':120e-5,'eeg':50e-5}
     event_id = {'non target probe':0,'target probe':1}
     picks = mne.pick_types(raw.info,meg=False,eeg=True,eog=True)
-    epochs = mne.Epochs(raw,events_,event_id,tmin=0,tmax=2,baseline=(None,0),picks=picks,preload=True,reject=reject,)
+    epochs = mne.Epochs(raw,events_,event_id,tmin=-0.1,tmax=2,baseline=(-0.1,0),picks=picks,preload=True,reject=reject,)
     ##### fit ICA ##############################
-    noise_cov = mne.compute_covariance(epochs,tmin=0,tmax=2,)#n_jobs=2)
+    noise_cov = mne.compute_covariance(epochs,tmin=-0.1,tmax=2,)#n_jobs=2)
     n_components = .99  
     method = 'extended-infomax'  
     decim = 3  
@@ -140,90 +140,7 @@ for n in range(len(files_vhdr)):
 ##    epochs.resample(128) # so that I could decode patterns
 #    epochs.save(os.path.join(data_dir_probe,'sub%s_load2_day%s-epo.fif'%(sub,day)))
 
-########### machine learning #####################
-from mne.decoding import LinearModel,Vectorizer,SlidingEstimator,get_coef,cross_val_multiscore,GeneralizingEstimator
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import Pipeline
-from sklearn.svm import SVC
-from sklearn.model_selection import KFold
-from sklearn import metrics
 
-ch_names = epochs.ch_names
-cv = KFold(n_splits=3,shuffle=True,random_state=12345)# 4 folds cross validation
-data = epochs.get_data()
-labels = epochs.events[:,-1]
-def make_clf():
-    """
-    Takes no argument, and return a pipeline of linear classifier, containing a scaler and a linear estimator
-    """
-    clf = []
-#    clf.append(('vectorizer',Vectorizer()))
-    clf.append(('scaler',StandardScaler()))
-    estimator = SVC(kernel='linear',max_iter=int(-1),random_state=12345,class_weight='balanced')
-#    estimator = LinearModel(estimator) # extra step for decoding patterns
-    clf.append(('estimator',estimator))
-    clf = Pipeline(clf)
-    return clf  
-clf = make_clf()
-td = SlidingEstimator(clf,scoring='roc_auc',)
-predictions = []
-for train,test in cv.split(data,labels):
-    td = SlidingEstimator(clf,scoring='roc_auc',)
-    td.fit(data[train],labels[train])
-    pred_ = td.predict(data[test])
-    predictions.append([pred_,labels[test]])
-
-scores = []
-for pred_,test_labels in predictions:
-    pred_,test_labels
-    scores_ = [metrics.roc_auc_score(test_labels,p) for p in pred_.T]
-    scores.append(scores_)
-scores = np.array(scores)
-
-scores_mean = scores.mean(0)
-scores_std = scores.std(0)
-times = np.linspace(0,2000,num=scores.shape[1])
-
-fig,ax  = plt.subplots(figsize=(12,8))
-ax.plot(times,scores_mean,color='black',alpha=1.,label='decoding mean')
-ax.fill_between(times,scores_mean-scores_std,scores_mean+scores_std,color='red',alpha=0.3,label='decoding std')
-ax.axhline(0.5,linestyle='--',color='blue',alpha=0.6,label='reference')
-ax.set(xlabel='time (ms)',ylabel='ROC AUC',xlim=(0,2000),ylim=(0.3,.8),title="sub%s_load%s_day%s"%(sub,condition[1],day))
-ax.legend()
-
-########### pattern decoding ##############
-def make_clf():
-    """
-    Takes no argument, and return a pipeline of linear classifier, containing a scaler and a linear estimator
-    """
-    clf = []
-    clf.append(('vectorizer',Vectorizer()))
-    clf.append(('scaler',StandardScaler()))
-    estimator = SVC(kernel='linear',max_iter=int(-1),random_state=12345,class_weight='balanced')
-    estimator = LinearModel(estimator) # extra step for decoding patterns
-    clf.append(('estimator',estimator))
-    clf = Pipeline(clf)
-    return clf  
-clf = make_clf()
-
-patterns = []
-for train,test in cv.split(data,labels):
-    clf.fit(data[train],labels[train])
-    patterns_ = get_coef(clf,attr='patterns_',inverse_transform=True)
-    patterns.append(patterns_)
-patterns = np.array(patterns)
-patterns_mean = patterns.mean(0)
-info = epochs.info
-evoke = mne.EvokedArray(patterns_mean,info,)
-epochs['non target probe'].average().plot_joint(title='non target probe')
-epochs['target probe'].average().plot_joint(title='target probe')
-evoke.plot_joint(title='pattern difference between target and non target probes')
-
-
-
-
-pred_ = clf.predict(data[test])
-print(metrics.classification_report(labels[test],pred_))
 
 
 
