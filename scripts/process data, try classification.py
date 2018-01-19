@@ -70,19 +70,9 @@ for n in range(len(files_vhdr)):
     raw.notch_filter(np.arange(60,241,60),picks=picks,fir_design='firwin')#n_jobs=2)
     event_id = {'non target probe':0,'target probe':1}
 #    picks = mne.pick_types(raw.info,meg=False,eeg=True,eog=True)
-    epochs = mne.Epochs(raw,events_,event_id,tmin=0,tmax=2,baseline=(None,0),picks=picks,preload=True,reject=None,)
-    reject = get_rejection_threshold(epochs,)
-    ##### fit ICA ##############################
-    noise_cov = mne.compute_covariance(epochs,tmin=-0.1,tmax=2,)#n_jobs=2)
-    n_components = .99  
-    method = 'extended-infomax'  
-    decim = 3  
-    ica = mne.preprocessing.ICA(n_components=n_components,noise_cov=noise_cov,
-                               method=method,random_state=12345,max_iter=3000,)
-    picks = mne.pick_types(epochs.info,meg=False,eeg=True,eog=False)
-    ica.fit(epochs,picks=picks,decim=decim,reject=reject)
-    ica.detect_artifacts(epochs,eog_ch=['LOc','ROc'],eog_criterion=0.2,)
-    epochs = ica.apply(epochs)
+    epochs = mne.Epochs(raw,events_,event_id,tmin=-0.05,tmax=2,baseline=(-0.05,0),picks=picks,preload=True,reject=None,)
+    reject = get_rejection_threshold(epochs)
+    reject_ = compute_thresholds(epochs,random_state=12345,picks=picks,)
 #    #### fix epochs
 #    thresh_func = partial(compute_thresholds, picks=picks, method='random_search',
 #                      random_state=12345)
@@ -90,6 +80,18 @@ for n in range(len(files_vhdr)):
 #                       thresh_func=thresh_func)
 #    ar.fit(epochs)
 #    cl = ar.transform(epochs)
+    ##### fit ICA ##############################
+    noise_cov = mne.compute_covariance(epochs,tmin=-0.05,tmax=2,)#n_jobs=2)
+    n_components = .99  
+    method = 'extended-infomax'  
+    decim = 3  
+    ica = mne.preprocessing.ICA(n_components=n_components,noise_cov=noise_cov,
+                               method=method,random_state=12345,max_iter=3000,)
+    picks = mne.pick_types(epochs.info,meg=False,eeg=True,eog=False)
+    ica.fit(epochs,picks=picks,decim=decim,reject=reject_)
+    ica.detect_artifacts(epochs,eog_ch=['LOc','ROc'],eog_criterion=0.2,)
+    epochs = ica.apply(epochs)
+
     epochs.drop_bad(reject=reject)
     epochs.pick_types(meg=False,eeg=True,eog=False)
 #    epochs.resample(128) # so that I could decode patterns
@@ -106,20 +108,27 @@ for n in range(len(files_vhdr)):
     print(files_vhdr[n],subject_evt)
     event_id={'delay':1}
     picks = mne.pick_types(raw.info,meg=False,eeg=True,eog=True)
-    epochs = mne.Epochs(raw,events_,event_id,tmin=0,tmax=6,baseline=(None,0),picks=picks,preload=True,reject=None,)
-    reject = get_rejection_threshold(epochs,)
+    epochs = mne.Epochs(raw,events_,event_id,tmin=-0.05,tmax=6,baseline=(-0.05,0),picks=picks,preload=True,reject=None,)
+    reject = get_rejection_threshold(epochs,random_state=12345)
+    reject_ = compute_thresholds(epochs,random_state=12345,picks=picks,)
+#    #### fix epochs
+#    thresh_func = partial(compute_thresholds, picks=picks, method='random_search',
+#                      random_state=12345)
+#    ar = LocalAutoRejectCV(n_interpolates, consensus_percs, picks=picks,
+#                       thresh_func=thresh_func)
+#    ar.fit(epochs)
     ##### fit ICA ##############################
-    noise_cov = mne.compute_covariance(epochs,tmin=-0.1,tmax=2,)#n_jobs=2)
+    noise_cov = mne.compute_covariance(epochs,tmin=-0.05,tmax=6,)#n_jobs=2)
     n_components = .99  
     method = 'extended-infomax'  
     decim = 3  
     ica = mne.preprocessing.ICA(n_components=n_components,noise_cov=noise_cov,
                                method=method,random_state=12345,max_iter=3000,)
     picks = mne.pick_types(epochs.info,meg=False,eeg=True,eog=False)
-    ica.fit(epochs,picks=picks,decim=decim,reject=reject)
+    ica.fit(epochs,picks=picks,decim=decim,reject=reject_)
     ica.detect_artifacts(epochs,eog_ch=['LOc','ROc'],eog_criterion=0.2,)
     epochs = ica.apply(epochs)
-    epochs.drop_bad(reject=reject)
+#    epochs.drop_bad(reject=reject)
     epochs.pick_types(meg=False,eeg=True,eog=False)
 #    epochs.resample(128) # so that I could decode patterns
     epochs.save(os.path.join(data_dir_probe,'sub%s_load2_day%s-epo.fif'%(sub,day)))
