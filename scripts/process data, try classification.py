@@ -66,10 +66,10 @@ for n in range(len(files_vhdr)):
     picks = mne.pick_types(raw.info,meg=False,eeg=True,eog=False)
     raw.filter(1,40,picks=picks,fir_design='firwin')#n_jobs=2)
     raw.notch_filter(np.arange(60,241,60),picks=picks,fir_design='firwin')#n_jobs=2)
-    reject={'eog':120e-5,'eeg':50e-5}
+    reject={'eog':400e-6,'eeg':150e-6}
     event_id = {'non target probe':0,'target probe':1}
     picks = mne.pick_types(raw.info,meg=False,eeg=True,eog=True)
-    epochs = mne.Epochs(raw,events_,event_id,tmin=-0.1,tmax=2,baseline=(-0.1,0),picks=picks,preload=True,reject=reject,)
+    epochs = mne.Epochs(raw,events_,event_id,tmin=0,tmax=2,baseline=(None,0),picks=picks,preload=True,reject=reject,)
     ##### fit ICA ##############################
     noise_cov = mne.compute_covariance(epochs,tmin=-0.1,tmax=2,)#n_jobs=2)
     n_components = .99  
@@ -78,6 +78,7 @@ for n in range(len(files_vhdr)):
     ica = mne.preprocessing.ICA(n_components=n_components,noise_cov=noise_cov,
                                method=method,random_state=12345,max_iter=3000,)
     picks = mne.pick_types(epochs.info,meg=False,eeg=True,eog=False)
+    reject = {'eog':300e-6,'eeg':100e-6}
     ica.fit(epochs,picks=picks,decim=decim,reject=reject)
     ica.detect_artifacts(epochs,eog_ch=['LOc','ROc'],eog_criterion=0.2,)
     epochs = ica.apply(epochs)
@@ -89,56 +90,47 @@ for n in range(len(files_vhdr)):
 #epochs['target probe'].average().plot_joint(title='target probe')
 
 """delay condition"""
-#data_dir_probe = os.path.join(data_dir,'delay')
-#if not os.path.exists(data_dir_probe):
-#    os.makedirs(data_dir_probe)
+data_dir_probe = os.path.join(data_dir,'delay')
+if not os.path.exists(data_dir_probe):
+    os.makedirs(data_dir_probe)
 #
-#for n in range(len(files_vhdr)):
-#    sub,_,day = re.findall('\d+',files_vhdr[n])
-#    subject_evt = [f for f in files_evt if ('suj%s_'%sub in f) and ('day%s'%day in f)][0]
-#    events = pd.read_csv(subject_evt,sep='\t')
-#    events.columns = ['tms','code','TriNo','RT','Recode','Comnt']
-#    events_delay = events[events['TriNo'] == 71]
-#    events_delay['Recode'] = 1
-#    #### make the time label for 2000 - 4000 ms
-#    events_delay_1 = events_delay.copy()
-#    events_delay_1['tms'] = events_delay_1['tms'] + 2000
-#    events_delay_1['Recode'] = 2
-#    ### make the time label for 4000 - 6000 ms
-#    events_delay_2 = events_delay.copy()
-#    events_delay_2['tms'] = events_delay_2['tms'] + 4000
-#    events_delay_2['Recode'] = 3
-#    
-#    events_delay = pd.concat([events_delay,events_delay_1,events_delay_2])
-#    events_delay = events_delay.sort_values('tms')
-#    events_ = events_delay[['tms','RT','Recode']].values.astype(int)
-#    
-#    print(files_vhdr[n],subject_evt)
-#    raw = mne.io.read_raw_brainvision(files_vhdr[n],montage='standard_1020',
-#                                         eog=('LOc','ROc','Aux1'),preload=True)
-#    raw.set_channel_types({'Aux1':'stim'})
-#    raw.set_eeg_reference().apply_proj()
-#    picks = mne.pick_types(raw.info,meg=False,eeg=True,eog=False)
-#    raw.filter(1,40,picks=picks,fir_design='firwin')#n_jobs=2)
-#    raw.notch_filter(np.arange(60,241,60),picks=picks,fir_design='firwin')#n_jobs=2)
-#    reject={'eog':120e-5,'eeg':50e-5}
-#    event_id={'0-2000ms':1,'2000-4000ms':2,'4000-6000ms':3}
-#    picks = mne.pick_types(raw.info,meg=False,eeg=True,eog=True)
-#    epochs = mne.Epochs(raw,events_,event_id,tmin=0,tmax=2,baseline=(None,0),picks=picks,preload=True,reject=reject,)
-#    ##### fit ICA ##############################
-#    noise_cov = mne.compute_covariance(epochs,tmin=0,tmax=2,)#n_jobs=2)
-#    n_components = .99  
-#    method = 'extended-infomax'  
-#    decim = 3  
-#    ica = mne.preprocessing.ICA(n_components=n_components,noise_cov=noise_cov,
-#                               method=method,random_state=12345,max_iter=3000,)
-#    picks = mne.pick_types(epochs.info,meg=False,eeg=True,eog=False)
-#    ica.fit(epochs,picks=picks,decim=decim,reject=reject)
-#    ica.detect_artifacts(epochs,eog_ch=['LOc','ROc'],eog_criterion=0.2,)
-#    epochs = ica.apply(epochs)
-#    epochs.pick_types(meg=False,eeg=True,eog=False)
-##    epochs.resample(128) # so that I could decode patterns
-#    epochs.save(os.path.join(data_dir_probe,'sub%s_load2_day%s-epo.fif'%(sub,day)))
+for n in range(len(files_vhdr)):
+    sub,_,day = re.findall('\d+',files_vhdr[n])
+    subject_evt = [f for f in files_evt if ('suj%s_'%sub in f) and ('day%s'%day in f)][0]
+    events = pd.read_csv(subject_evt,sep='\t')
+    events.columns = ['tms','code','TriNo','RT','Recode','Comnt']
+    events_delay = events[events['TriNo'] == 71]
+    events_delay['Recode'] = 1
+    
+    events_ = events_delay[['tms','RT','Recode']].values.astype(int)
+    
+    print(files_vhdr[n],subject_evt)
+    raw = mne.io.read_raw_brainvision(files_vhdr[n],montage='standard_1020',
+                                         eog=('LOc','ROc','Aux1'),preload=True)
+    raw.set_channel_types({'Aux1':'stim'})
+    raw.set_eeg_reference().apply_proj()
+    picks = mne.pick_types(raw.info,meg=False,eeg=True,eog=False)
+    raw.filter(1,40,picks=picks,fir_design='firwin')#n_jobs=2)
+    raw.notch_filter(np.arange(60,241,60),picks=picks,fir_design='firwin')#n_jobs=2)
+    reject={'eog':400e-6,'eeg':150e-6}
+    event_id={'0-2000ms':1,'2000-4000ms':2,'4000-6000ms':3}
+    picks = mne.pick_types(raw.info,meg=False,eeg=True,eog=True)
+    epochs = mne.Epochs(raw,events_,event_id,tmin=0,tmax=6,baseline=(None,0),picks=picks,preload=True,reject=reject,)
+    ##### fit ICA ##############################
+    noise_cov = mne.compute_covariance(epochs,tmin=0,tmax=6,)#n_jobs=2)
+    n_components = .99  
+    method = 'extended-infomax'  
+    decim = 3  
+    ica = mne.preprocessing.ICA(n_components=n_components,noise_cov=noise_cov,
+                               method=method,random_state=12345,max_iter=3000,)
+    picks = mne.pick_types(epochs.info,meg=False,eeg=True,eog=False)
+    reject = {'eog':300e-6,'eeg':100e-6}
+    ica.fit(epochs,picks=picks,decim=decim,reject=reject)
+    ica.detect_artifacts(epochs,eog_ch=['LOc','ROc'],eog_criterion=0.2,)
+    epochs = ica.apply(epochs)
+    epochs.pick_types(meg=False,eeg=True,eog=False)
+#    epochs.resample(128) # so that I could decode patterns
+    epochs.save(os.path.join(data_dir_probe,'sub%s_load2_day%s-epo.fif'%(sub,day)))
 
 
 
