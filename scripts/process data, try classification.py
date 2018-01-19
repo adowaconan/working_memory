@@ -73,32 +73,16 @@ for n in range(len(files_vhdr)):
     epochs.pick_types(meg=False,eeg=True,eog=False)
 #    epochs.resample(128) # so that I could decode patterns
     epochs.save(os.path.join(data_dir_probe,'sub%s_load2_day%s-epo.fif'%(sub,day)))
-
-
-
-"""delay condition"""
-data_dir_probe = os.path.join(data_dir,'delay')
-if not os.path.exists(data_dir_probe):
-    os.makedirs(data_dir_probe)
-#
-for n in range(len(files_vhdr)):
-    sub,_,day = re.findall('\d+',files_vhdr[n])
+    
+    ### delay ###    
     subject_evt = [f for f in files_evt if ('suj%s_'%sub in f) and ('day%s'%day in f)][0]
     events = pd.read_csv(subject_evt,sep='\t')
     events.columns = ['tms','code','TriNo','RT','Recode','Comnt']
     events_delay = events[events['TriNo'] == 71]
     events_delay['Recode'] = 1
-    
     events_ = events_delay[['tms','RT','Recode']].values.astype(int)
-    
+
     print(files_vhdr[n],subject_evt)
-    raw = mne.io.read_raw_brainvision(files_vhdr[n],montage='standard_1020',
-                                         eog=('LOc','ROc','Aux1'),preload=True)
-    raw.set_channel_types({'Aux1':'stim'})
-    raw.set_eeg_reference().apply_proj()
-    picks = mne.pick_types(raw.info,meg=False,eeg=True,eog=False)
-    raw.filter(1,40,picks=picks,fir_design='firwin')#n_jobs=2)
-    raw.notch_filter(np.arange(60,241,60),picks=picks,fir_design='firwin')#n_jobs=2)
     event_id={'delay':1}
     picks = mne.pick_types(raw.info,meg=False,eeg=True,eog=True)
     epochs = mne.Epochs(raw,events_,event_id,tmin=0,tmax=6,baseline=(None,0),picks=picks,preload=True,reject=None,)
@@ -107,6 +91,38 @@ for n in range(len(files_vhdr)):
     epochs.pick_types(meg=False,eeg=True,eog=False)
 #    epochs.resample(128) # so that I could decode patterns
     epochs.save(os.path.join(data_dir_probe,'sub%s_load2_day%s-epo.fif'%(sub,day)))
+
+#"""delay condition"""
+#data_dir_probe = os.path.join(data_dir,'delay')
+#if not os.path.exists(data_dir_probe):
+#    os.makedirs(data_dir_probe)
+##
+#for n in range(len(files_vhdr)):
+#    sub,_,day = re.findall('\d+',files_vhdr[n])
+#    subject_evt = [f for f in files_evt if ('suj%s_'%sub in f) and ('day%s'%day in f)][0]
+#    events = pd.read_csv(subject_evt,sep='\t')
+#    events.columns = ['tms','code','TriNo','RT','Recode','Comnt']
+#    events_delay = events[events['TriNo'] == 71]
+#    events_delay['Recode'] = 1
+#    
+#    events_ = events_delay[['tms','RT','Recode']].values.astype(int)
+#    
+#    print(files_vhdr[n],subject_evt)
+#    raw = mne.io.read_raw_brainvision(files_vhdr[n],montage='standard_1020',
+#                                         eog=('LOc','ROc','Aux1'),preload=True)
+#    raw.set_channel_types({'Aux1':'stim'})
+#    raw.set_eeg_reference().apply_proj()
+#    picks = mne.pick_types(raw.info,meg=False,eeg=True,eog=True)
+#    raw.filter(1,40,picks=picks,fir_design='firwin')#n_jobs=2)
+#    raw.notch_filter(np.arange(60,241,60),picks=picks,fir_design='firwin')#n_jobs=2)
+#    event_id={'delay':1}
+#    picks = mne.pick_types(raw.info,meg=False,eeg=True,eog=True)
+#    epochs = mne.Epochs(raw,events_,event_id,tmin=0,tmax=6,baseline=(None,0),picks=picks,preload=True,reject=None,)
+#    reject = get_rejection_threshold(epochs,)
+#    epochs.drop_bad(reject=reject)
+#    epochs.pick_types(meg=False,eeg=True,eog=False)
+##    epochs.resample(128) # so that I could decode patterns
+#    epochs.save(os.path.join(data_dir_probe,'sub%s_load2_day%s-epo.fif'%(sub,day)))
 
 
 
