@@ -12,8 +12,9 @@ import mne
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
-from autoreject import get_rejection_threshold
-
+from autoreject import (LocalAutoRejectCV, compute_thresholds,
+                        set_matplotlib_defaults,get_rejection_threshold) 
+from functools import partial  # noqa
 working_dir = 'D:\\working_memory\\'
 data_dir = 'D:\\working_memory\\data_probe_train_test'
 result_dir = 'D:\\working_memory\\probe_train_test'
@@ -27,6 +28,8 @@ condition = 'l2_';n = 2
 files_vhdr = glob(working_dir+'*%s*.vhdr'%condition)
 files_evt = glob(os.path.join(evt_dir,'*%s*'%condition))
 
+n_interpolates = np.array([1, 4, 32])
+consensus_percs = np.linspace(0, 1.0, 11)
 
 
 
@@ -69,6 +72,24 @@ for n in range(len(files_vhdr)):
 #    picks = mne.pick_types(raw.info,meg=False,eeg=True,eog=True)
     epochs = mne.Epochs(raw,events_,event_id,tmin=0,tmax=2,baseline=(None,0),picks=picks,preload=True,reject=None,)
     reject = get_rejection_threshold(epochs,)
+    ##### fit ICA ##############################
+    noise_cov = mne.compute_covariance(epochs,tmin=-0.1,tmax=2,)#n_jobs=2)
+    n_components = .99  
+    method = 'extended-infomax'  
+    decim = 3  
+    ica = mne.preprocessing.ICA(n_components=n_components,noise_cov=noise_cov,
+                               method=method,random_state=12345,max_iter=3000,)
+    picks = mne.pick_types(epochs.info,meg=False,eeg=True,eog=False)
+    ica.fit(epochs,picks=picks,decim=decim,reject=reject)
+    ica.detect_artifacts(epochs,eog_ch=['LOc','ROc'],eog_criterion=0.2,)
+    epochs = ica.apply(epochs)
+#    #### fix epochs
+#    thresh_func = partial(compute_thresholds, picks=picks, method='random_search',
+#                      random_state=12345)
+#    ar = LocalAutoRejectCV(n_interpolates, consensus_percs, picks=picks,
+#                       thresh_func=thresh_func)
+#    ar.fit(epochs)
+#    cl = ar.transform(epochs)
     epochs.drop_bad(reject=reject)
     epochs.pick_types(meg=False,eeg=True,eog=False)
 #    epochs.resample(128) # so that I could decode patterns
@@ -87,6 +108,17 @@ for n in range(len(files_vhdr)):
     picks = mne.pick_types(raw.info,meg=False,eeg=True,eog=True)
     epochs = mne.Epochs(raw,events_,event_id,tmin=0,tmax=6,baseline=(None,0),picks=picks,preload=True,reject=None,)
     reject = get_rejection_threshold(epochs,)
+    ##### fit ICA ##############################
+    noise_cov = mne.compute_covariance(epochs,tmin=-0.1,tmax=2,)#n_jobs=2)
+    n_components = .99  
+    method = 'extended-infomax'  
+    decim = 3  
+    ica = mne.preprocessing.ICA(n_components=n_components,noise_cov=noise_cov,
+                               method=method,random_state=12345,max_iter=3000,)
+    picks = mne.pick_types(epochs.info,meg=False,eeg=True,eog=False)
+    ica.fit(epochs,picks=picks,decim=decim,reject=reject)
+    ica.detect_artifacts(epochs,eog_ch=['LOc','ROc'],eog_criterion=0.2,)
+    epochs = ica.apply(epochs)
     epochs.drop_bad(reject=reject)
     epochs.pick_types(meg=False,eeg=True,eog=False)
 #    epochs.resample(128) # so that I could decode patterns
