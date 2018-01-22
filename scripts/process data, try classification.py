@@ -33,11 +33,13 @@ consensus_percs = np.linspace(0, 1.0, 11)
 
 
 
-"""probe condition"""
+"""probe and delay condition"""
 data_dir_probe = os.path.join(data_dir,'probe')
 if not os.path.exists(data_dir_probe):
     os.makedirs(data_dir_probe)
-    
+data_dir_delay = os.path.join(data_dir,'delay')
+if not os.path.exists(data_dir_delay):
+    os.makedirs(data_dir_delay)    
 for n in range(len(files_vhdr)):
     sub,_,day = re.findall('\d+',files_vhdr[n])
     subject_evt = [f for f in files_evt if ('suj%s_'%sub in f) and ('day%s'%day in f)][0]
@@ -71,30 +73,31 @@ for n in range(len(files_vhdr)):
     event_id = {'non target probe':0,'target probe':1}
 #    picks = mne.pick_types(raw.info,meg=False,eeg=True,eog=True)
     epochs = mne.Epochs(raw,events_,event_id,tmin=-0.05,tmax=2,baseline=(-0.05,0),picks=picks,preload=True,reject=None,)
-    reject = get_rejection_threshold(epochs)
-    reject_ = compute_thresholds(epochs,random_state=12345,picks=picks,)
-#    #### fix epochs
-#    thresh_func = partial(compute_thresholds, picks=picks, method='random_search',
-#                      random_state=12345)
-#    ar = LocalAutoRejectCV(n_interpolates, consensus_percs, picks=picks,
-#                       thresh_func=thresh_func)
-#    ar.fit(epochs)
-#    cl = ar.transform(epochs)
-    ##### fit ICA ##############################
-    noise_cov = mne.compute_covariance(epochs,tmin=-0.05,tmax=2,)#n_jobs=2)
-    n_components = .99  
-    method = 'extended-infomax'  
-    decim = 3  
-    ica = mne.preprocessing.ICA(n_components=n_components,noise_cov=noise_cov,
-                               method=method,random_state=12345,max_iter=3000,)
-    picks = mne.pick_types(epochs.info,meg=False,eeg=True,eog=False)
-    ica.fit(epochs,picks=picks,decim=decim,reject=reject_)
-    ica.detect_artifacts(epochs,eog_ch=['LOc','ROc'],eog_criterion=0.2,)
-    epochs = ica.apply(epochs)
-
-    epochs.drop_bad(reject=reject)
+#    reject = get_rejection_threshold(epochs)
+#    reject_ = compute_thresholds(epochs,random_state=12345,picks=picks,)
+    #### fix epochs
+    thresh_func = partial(compute_thresholds, picks=picks, method='bayesian_optimization',
+                      random_state=12345)
+    ar = LocalAutoRejectCV(n_interpolates, consensus_percs, picks=picks,
+                       thresh_func=thresh_func)
+    ar.fit(epochs)
+    epochs = ar.transform(epochs)
+#    ##### fit ICA ##############################
+#    noise_cov = mne.compute_covariance(epochs,tmin=-0.05,tmax=2,)#n_jobs=2)
+#    n_components = .99  
+#    method = 'extended-infomax'  
+#    decim = 3  
+#    ica = mne.preprocessing.ICA(n_components=n_components,noise_cov=noise_cov,
+#                               method=method,random_state=12345,max_iter=3000,)
+#    picks = mne.pick_types(epochs.info,meg=False,eeg=True,eog=False)
+#    ica.fit(epochs,picks=picks,decim=decim,reject=reject_)
+#    ica.detect_artifacts(epochs,eog_ch=['LOc','ROc'],eog_criterion=0.2,)
+#    epochs = ica.apply(epochs)
+#    
+#    epochs.drop_bad(reject=reject)
     epochs.pick_types(meg=False,eeg=True,eog=False)
 #    epochs.resample(128) # so that I could decode patterns
+    print(epochs)
     epochs.save(os.path.join(data_dir_probe,'sub%s_load2_day%s-epo.fif'%(sub,day)))
     
     ### delay ###    
@@ -109,29 +112,31 @@ for n in range(len(files_vhdr)):
     event_id={'delay':1}
     picks = mne.pick_types(raw.info,meg=False,eeg=True,eog=True)
     epochs = mne.Epochs(raw,events_,event_id,tmin=-0.05,tmax=6,baseline=(-0.05,0),picks=picks,preload=True,reject=None,)
-    reject = get_rejection_threshold(epochs,random_state=12345)
-    reject_ = compute_thresholds(epochs,random_state=12345,picks=picks,)
-#    #### fix epochs
-#    thresh_func = partial(compute_thresholds, picks=picks, method='random_search',
-#                      random_state=12345)
-#    ar = LocalAutoRejectCV(n_interpolates, consensus_percs, picks=picks,
-#                       thresh_func=thresh_func)
-#    ar.fit(epochs)
-    ##### fit ICA ##############################
-    noise_cov = mne.compute_covariance(epochs,tmin=-0.05,tmax=6,)#n_jobs=2)
-    n_components = .99  
-    method = 'extended-infomax'  
-    decim = 3  
-    ica = mne.preprocessing.ICA(n_components=n_components,noise_cov=noise_cov,
-                               method=method,random_state=12345,max_iter=3000,)
-    picks = mne.pick_types(epochs.info,meg=False,eeg=True,eog=False)
-    ica.fit(epochs,picks=picks,decim=decim,reject=reject_)
-    ica.detect_artifacts(epochs,eog_ch=['LOc','ROc'],eog_criterion=0.2,)
-    epochs = ica.apply(epochs)
+#    reject = get_rejection_threshold(epochs)
+#    reject_ = compute_thresholds(epochs,random_state=12345,picks=picks,)
+    #### fix epochs
+    thresh_func = partial(compute_thresholds, picks=picks, method='random_search',
+                      random_state=12345)
+    ar = LocalAutoRejectCV(n_interpolates, consensus_percs, picks=picks,
+                       thresh_func=thresh_func)
+    ar.fit(epochs)
+    epochs = ar.transform(epochs)
+#    ##### fit ICA ##############################
+#    noise_cov = mne.compute_covariance(epochs,tmin=-0.05,tmax=6,)#n_jobs=2)
+#    n_components = .99  
+#    method = 'extended-infomax'  
+#    decim = 3  
+#    ica = mne.preprocessing.ICA(n_components=n_components,noise_cov=noise_cov,
+#                               method=method,random_state=12345,max_iter=3000,)
+#    picks = mne.pick_types(epochs.info,meg=False,eeg=True,eog=False)
+#    ica.fit(epochs,picks=picks,decim=decim,reject=reject_)
+#    ica.detect_artifacts(epochs,eog_ch=['LOc','ROc'],eog_criterion=0.2,)
+#    epochs = ica.apply(epochs)
 #    epochs.drop_bad(reject=reject)
     epochs.pick_types(meg=False,eeg=True,eog=False)
 #    epochs.resample(128) # so that I could decode patterns
-    epochs.save(os.path.join(data_dir_probe,'sub%s_load2_day%s-epo.fif'%(sub,day)))
+    print(epochs)
+    epochs.save(os.path.join(data_dir_delay,'sub%s_load2_day%s-epo.fif'%(sub,day)))
 
 #"""delay condition"""
 #data_dir_probe = os.path.join(data_dir,'delay')
