@@ -14,19 +14,30 @@ from glob import glob
 working_dir = 'D:\\working_memory\\data_probe_train_test\\'
 
 """probe"""
-files = glob(os.path.join(working_dir,'probe/*.fif'))
+condition = 'probe'
+files = glob(os.path.join(working_dir,'%s/*.fif'%condition))
 for e in files:
     epochs = mne.read_epochs(e)
     sub,load,day = re.findall('\d+',e)
-    title = 'sub%s, day%s,load2'%(sub,day)
-    fig = epochs.average().plot_joint(title=title,show=False,)
-    fig.savefig(working_dir+'probe\\'+title+'.png')
+    title = 'sub%s, day%s,load2\npositive probe'%(sub,day)
+    fig = epochs['target probe'].average().plot_joint(title=title,show=False,)# only plot the activity of the target probe trials
+    fig.savefig(working_dir+'%s\\'%condition+title.replace('\n',',')+'.png')
 
 """delay"""
-files = glob(os.path.join(working_dir,'delay/*.fif'))
+condition = 'delay'
+files = glob(os.path.join(working_dir,'%s/*.fif'%condition))
 for e in files:
     epochs = mne.read_epochs(e)
     sub,load,day = re.findall('\d+',e)
     title = 'sub%s, day%s,load2'%(sub,day)
-    fig = epochs.average().plot_joint(title=title,show=False,)
-    fig.savefig(working_dir+'delay\\'+title+'.png')
+    fig = epochs.average().plot_joint(title=title,show=False,)#during delay, subjects don't know if probe target or non target
+    fig.savefig(working_dir+'%s\\'%condition+title.replace('\n',',')+'.png')
+
+condition = 'encode'
+files = glob(os.path.join(working_dir,'%s/*.fif'%condition))
+for e in files:
+    epochs = mne.read_epochs(e)
+    sub,load,day = re.findall('\d+',e)
+    title = 'sub%s, day%s,load2\npresent again in probe'%(sub,day)
+    fig = epochs['target probe'].average().plot_joint(title=title,show=False,)
+    fig.savefig(working_dir+'%s\\'%condition+title.replace('\n',',')+'.png')
