@@ -174,7 +174,7 @@ for vhdr,probe,delay,encode in zip(files_vhdr,evt_file_probe,evt_file_delay,evt_
     events_ = events_encode[['tms','RT','Recode']].values.astype(int)
     events_[:,1] = 0
     picks = mne.pick_types(raw.info,meg=False,eeg=True,eog=True)
-    epochs = mne.Epochs(raw,events_,event_id,tmin=-0.05,tmax=6,baseline=(-0.05,0),picks=picks,preload=True,reject=None,)
+    epochs = mne.Epochs(raw,events_,event_id,tmin=-0.05,tmax=2,baseline=(-0.05,0),picks=picks,preload=True,reject=None,)
     thresh_func = partial(compute_thresholds, picks=picks, method='random_search',
                       random_state=12345)
     ar = LocalAutoRejectCV(n_interpolates, consensus_percs, picks=picks,
@@ -272,8 +272,34 @@ for n in range(len(files_vhdr)):
 
 
 
-
-
+for vhdr,probe,delay,encode in zip(files_vhdr,evt_file_probe,evt_file_delay,evt_file_encode):
+    sub,_,day = re.findall('\d+',vhdr)
+    
+    events_probe = pd.read_csv(probe)
+    events_delay = pd.read_csv(delay)
+    events_encode = pd.read_csv(encode)
+    raw = mne.io.read_raw_brainvision(vhdr,montage='standard_1020',
+                                         eog=('LOc','ROc','Aux1'),preload=True)
+    raw.set_channel_types({'Aux1':'stim'})
+    raw.set_eeg_reference().apply_proj()
+    picks = mne.pick_types(raw.info,meg=False,eeg=True,eog=True)
+    raw.filter(1,40,picks=picks,fir_design='firwin')#n_jobs=2)
+    raw.notch_filter(np.arange(60,241,60),picks=picks,fir_design='firwin')#n_jobs=2)
+    event_id = {'non target probe':0,'target probe':1}
+    #### encode #####
+    events_ = events_encode[['tms','RT','Recode']].values.astype(int)
+    events_[:,1] = 0
+    picks = mne.pick_types(raw.info,meg=False,eeg=True,eog=True)
+    epochs = mne.Epochs(raw,events_,event_id,tmin=-0.05,tmax=2,baseline=(-0.05,0),picks=picks,preload=True,reject=None,)
+    thresh_func = partial(compute_thresholds, picks=picks, method='random_search',
+                      random_state=12345)
+    ar = LocalAutoRejectCV(n_interpolates, consensus_percs, picks=picks,
+                       thresh_func=thresh_func)
+    ar.fit(epochs)
+    epochs = ar.transform(epochs)
+    epochs.pick_types(meg=False,eeg=True,eog=False)
+    print(epochs)
+    epochs.save(os.path.join(data_dir_encode,'sub%s_load2_day%s-epo.fif'%(sub,day)))
 
 
 
