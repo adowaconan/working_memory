@@ -41,7 +41,7 @@ def make_clf(estimator,vec=True):
 
 """train on probe, test on encode"""
 cv = StratifiedKFold(n_splits=3,shuffle=True,random_state=12345)
-interval = 50 # 50 ms window
+interval = 25 # 25 ms window
 clfs = {}
 scores = {}
 scores_test = {}
@@ -78,7 +78,8 @@ for probe,encode in zip(files_probe,files_encode):
             auc = metrics.roc_auc_score(train_labels[test],temp_pred_proba)
             confusion_matrix = metrics.confusion_matrix(train_labels[test],temp_pred)
             confusion_matrix = confusion_matrix.astype('float') / confusion_matrix.sum(1)[:,np.newaxis]
-            temp_scores.append(np.concatenate(([auc],confusion_matrix.flatten())))
+            mcc = metrics.matthews_corrcoef(train_labels[test],temp_pred)
+            temp_scores.append(np.concatenate(([auc],confusion_matrix.flatten(),[mcc])))
         clfs['sub%s, day%s,load2'%(sub,day)].append(temp_clfs)
         scores['sub%s, day%s,load2'%(sub,day)].append(temp_scores)
         
@@ -98,11 +99,14 @@ for probe,encode in zip(files_probe,files_encode):
                 auc = metrics.roc_auc_score(test_labels,temp_pred_proba)
                 confusion_matrix = metrics.confusion_matrix(test_labels,temp_pred)
                 confusion_matrix = confusion_matrix.astype('float') / confusion_matrix.sum(1)[:,np.newaxis]
-                temp_scores.append(np.concatenate(([auc],confusion_matrix.flatten())))
+                mcc = metrics.matthews_corrcoef(test_labels,temp_pred)
+                temp_scores.append(np.concatenate(([auc],confusion_matrix.flatten(),[mcc])))
+                
             scores_test_at_one_time_interval.append(temp_scores)
         scores_test['sub%s, day%s,load2'%(sub,day)].append(scores_test_at_one_time_interval)
-pickle.dump(scores_test,open(saving_dir+ '\\probe-encode.p','wb'))        
-
+pickle.dump(scores_test,open(saving_dir+ '\\probe-encode.p','wb'))   
+pickle.dump([scores,clfs],open(saving_dir+'\\probe-probe.p','wb'))     
+scores_test = pickle.load(open(saving_dir+ '\\probe-encode.p','rb'))
 
 plt.close('all')
 for name,value in scores_test.items():
@@ -112,7 +116,7 @@ for name,value in scores_test.items():
     sss_mean = sss.mean(2)
     sss_std = sss.std(2)
     fig,ax = plt.subplots(figsize=(10,10))
-    im = ax.imshow(sss_mean,origin='lower',aspect='auto',extent=[0,2000,0,2000])
+    im = ax.imshow(sss_mean,origin='lower',aspect='auto',extent=[0,2000,0,2000],interpolation='gaussian')
     ax.set(xlabel='test models at delay',ylabel='train models at probe',title=name)
     plt.colorbar(im)
     fig.savefig(os.path.join(saving_dir,'AUC scores_%s.png'%(name)),dpi=300)
@@ -141,7 +145,7 @@ for name,value in scores_test.items():
 
 """train on probe, test on delay"""
 cv = StratifiedKFold(n_splits=3,shuffle=True,random_state=12345)
-interval = 50 # 50 ms window
+interval = 25 # 25 ms window
 clfs = {}
 scores = {}
 scores_test = {}
@@ -178,7 +182,8 @@ for probe,delay in zip(files_probe,files_delay):
             auc = metrics.roc_auc_score(train_labels[test],temp_pred_proba)
             confusion_matrix = metrics.confusion_matrix(train_labels[test],temp_pred)
             confusion_matrix = confusion_matrix.astype('float') / confusion_matrix.sum(1)[:,np.newaxis]
-            temp_scores.append(np.concatenate(([auc],confusion_matrix.flatten())))
+            mcc = metrics.matthews_corrcoef(train_labels[test],temp_pred)
+            temp_scores.append(np.concatenate(([auc],confusion_matrix.flatten(),[mcc])))
         clfs['sub%s, day%s,load2'%(sub,day)].append(temp_clfs)
         scores['sub%s, day%s,load2'%(sub,day)].append(temp_scores)
         
@@ -198,7 +203,9 @@ for probe,delay in zip(files_probe,files_delay):
                 auc = metrics.roc_auc_score(test_labels,temp_pred_proba)
                 confusion_matrix = metrics.confusion_matrix(test_labels,temp_pred)
                 confusion_matrix = confusion_matrix.astype('float') / confusion_matrix.sum(1)[:,np.newaxis]
-                temp_scores.append(np.concatenate(([auc],confusion_matrix.flatten())))
+                mcc = metrics.matthews_corrcoef(test_labels,temp_pred)
+                temp_scores.append(np.concatenate(([auc],confusion_matrix.flatten(),[mcc])))
+                
             scores_test_at_one_time_interval.append(temp_scores)
         scores_test['sub%s, day%s,load2'%(sub,day)].append(scores_test_at_one_time_interval)
 
@@ -206,7 +213,8 @@ for probe,delay in zip(files_probe,files_delay):
 saving_dir = 'D:\\working_memory\\working_memory\\results\\train_probe_test_delay'
 if os.path.exist(saving_dir):
     os.makedirs(saving_dir)
-pickle.dump(scores_test,open(saving_dir+ '\\probe-delay.p','wb'))        
+pickle.dump(scores_test,open(saving_dir+ '\\probe-delay.p','wb'))  
+pickle.dump([scores,clfs],open(saving_dir+'\\probe-probe.p','wb'))           
 
 
 plt.close('all')
