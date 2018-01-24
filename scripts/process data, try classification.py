@@ -218,37 +218,15 @@ for vhdr,probe,delay,encode in zip(files_vhdr,evt_file_probe,evt_file_delay,evt_
 
 
 
-for n in range(len(files_vhdr)):
-    sub,_,day = re.findall('\d+',files_vhdr[n])
-    subject_evt = [f for f in files_evt if ('suj%s_'%sub in f) and ('day%s'%day in f)][0]
-    events = pd.read_csv(subject_evt,sep='\t')
-    events.columns = ['tms','code','TriNo','RT','Recode','Comnt']
-    if events.Recode.sum() != 0:
-        recode = events.Recode
-    if 27 < int(sub) <30:
-        events['Recode'] = events['TriNo'].apply(lambda x:int(str(x)[-1]) if x > 80 else 0)
-        events_probe = events[events.Recode != 0]
-        recode = events.Recode
-    elif int(sub) > 29:
-        events['Recode'] = recode
-    else:
-        events_probe = events[events['Comnt'] == 'Probe onset']
-    events_delay = events[events['TriNo'] == 71]
-    label_dict = {4:0,3:0,2:1,1:1}
-    events_probe['labels'] = events_probe.Recode.map(label_dict)
-    temp_ = []
-    for onset in events_delay['tms'].values:
-        idx = [i for i,v in enumerate(events_probe['tms'].values) if (0 < v - onset < 6100) ]
-        if len(idx) > 0:
-            idx = idx[0]
-            print(onset,events_probe['tms'].values[idx],events_probe['labels'].values[idx])
-            temp_.append([onset,0,events_probe['labels'].values[idx]])
-    events_ = np.array(temp_).astype(int)
-    #drop nan
-    idx = np.logical_or(events_[:,-1]==0, events_[:,-1]==1)
-    events_ = events_[idx,:]
-    event_id = {'non target probe':0,'target probe':1}
+for vhdr,probe,delay,encode in zip(files_vhdr,evt_file_probe,evt_file_delay,evt_file_encode):
+    sub,_,day = re.findall('\d+',vhdr)
     
+    events_probe = pd.read_csv(probe)
+    events_delay = pd.read_csv(delay)
+    events_encode = pd.read_csv(encode)
+    event_id = {'non target probe':0,'target probe':1}
+    events_ = events_delay[['tms','RT','Recode']].values.astype(int)
+    events_[:,1] = 0
     print(files_vhdr[n],subject_evt)
     raw = mne.io.read_raw_brainvision(files_vhdr[n],montage='standard_1020',
                                          eog=('LOc','ROc','Aux1'),preload=True)
