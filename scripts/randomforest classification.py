@@ -25,7 +25,7 @@ from sklearn import metrics
 working_dir = 'D:\\working_memory\\data_probe_train_test\\'
 saving_dir = 'D:\\working_memory\\working_memory\\results\\train_probe_test_encode'
 
-"""probe"""
+"""directories"""
 files_probe = glob(os.path.join(working_dir,'probe/*.fif'))
 files_delay = glob(os.path.join(working_dir,'delay/*.fif'))
 files_encode = glob(os.path.join(working_dir,'encode/*.fif'))
@@ -38,6 +38,8 @@ def make_clf(estimator,vec=True):
     clf.append(('estimator',estimator))
     clf = Pipeline(clf)
     return clf
+
+"""train on probe, test on encode"""
 cv = StratifiedKFold(n_splits=3,shuffle=True,random_state=12345)
 interval = 50 # 50 ms window
 clfs = {}
@@ -109,31 +111,41 @@ for name,value in scores_test.items():
     sss = ccc[:,:,:,0]
     sss_mean = sss.mean(2)
     sss_std = sss.std(2)
-    fig,ax = plt.subplots()
+    fig,ax = plt.subplots(figsize=(10,10))
     im = ax.imshow(sss_mean,origin='lower',aspect='auto',extent=[0,2000,0,2000])
     ax.set(xlabel='test models at delay',ylabel='train models at probe',title=name)
     plt.colorbar(im)
+    fig.savefig(os.path.join(saving_dir,'AUC scores_%s.png'%(name)),dpi=300)
 
 plt.close('all')
+subplot_titles = ['sensitivity of negative probe',
+                  'false alarm',
+                  'miss',
+                  'sensitivity of positive probe']
 for name,value in scores_test.items():
     ccc = np.array(value)
-    fig,axes = plt.subplots(nrows=2,ncols=2)
+    fig,axes = plt.subplots(nrows=2,ncols=2,figsize=(10,10))
     for ii,ax in enumerate(axes.flatten()):
         sss = ccc[:,:,:,ii+1]
         sss_mean = sss.mean(2)
         sss_std = sss.std(2)
-        im = ax.imshow(sss_mean,origin='lower',aspect='auto',extent=[0,2000,0,2000])
+        im = ax.imshow(sss_mean,origin='lower',aspect='auto',extent=[0,2000,0,2000],vmin=0.5,vmax=0.7)
+        ax.set(title=subplot_titles[ii])
+    fig.subplots_adjust(right=0.8)
+    cbar_ax = fig.add_axes([0.85,0.15,0.05,0.7])
+    fig.colorbar(im,cax=cbar_ax)    
     fig.suptitle(name)
+    fig.savefig(os.path.join(saving_dir,'confusion matrix of matices_%s.png'%(name)),dpi=300)
 #        plt.colorbar(im)
 
 
-
+"""train on probe, test on delay"""
 cv = StratifiedKFold(n_splits=3,shuffle=True,random_state=12345)
 interval = 50 # 50 ms window
 clfs = {}
 scores = {}
 scores_test = {}
-for delay,encode in zip(files_probe,files_delay):
+for probe,delay in zip(files_probe,files_delay):
     epochs_probe = mne.read_epochs(probe)
     epochs_delay = mne.read_epochs(delay)
 #    epochs_encode = mne.read_epochs(encode)
@@ -191,11 +203,45 @@ for delay,encode in zip(files_probe,files_delay):
         scores_test['sub%s, day%s,load2'%(sub,day)].append(scores_test_at_one_time_interval)
 
 
+saving_dir = 'D:\\working_memory\\working_memory\\results\\train_probe_test_delay'
+if os.path.exist(saving_dir):
+    os.makedirs(saving_dir)
+pickle.dump(scores_test,open(saving_dir+ '\\probe-delay.p','wb'))        
 
 
+plt.close('all')
+for name,value in scores_test.items():
+    ccc = np.array(value)
+    
+    sss = ccc[:,:,:,0]
+    sss_mean = sss.mean(2)
+    sss_std = sss.std(2)
+    fig,ax = plt.subplots(figsize=(10,10))
+    im = ax.imshow(sss_mean,origin='lower',aspect='auto',extent=[0,2000,0,2000])
+    ax.set(xlabel='test models at delay',ylabel='train models at probe',title=name)
+    plt.colorbar(im)
+    fig.savefig(os.path.join(saving_dir,'AUC scores_%s.png'%(name)),dpi=300)
 
-
-
+plt.close('all')
+subplot_titles = ['sensitivity of negative probe',
+                  'false alarm',
+                  'miss',
+                  'sensitivity of positive probe']
+for name,value in scores_test.items():
+    ccc = np.array(value)
+    fig,axes = plt.subplots(nrows=2,ncols=2,figsize=(10,10))
+    for ii,ax in enumerate(axes.flatten()):
+        sss = ccc[:,:,:,ii+1]
+        sss_mean = sss.mean(2)
+        sss_std = sss.std(2)
+        im = ax.imshow(sss_mean,origin='lower',aspect='auto',extent=[0,2000,0,2000],vmin=0.5,vmax=0.7)
+        ax.set(title=subplot_titles[ii])
+    fig.subplots_adjust(right=0.8)
+    cbar_ax = fig.add_axes([0.85,0.15,0.05,0.7])
+    fig.colorbar(im,cax=cbar_ax)    
+    fig.suptitle(name)
+    fig.savefig(os.path.join(saving_dir,'confusion matrix of matices_%s.png'%(name)),dpi=300)
+#        plt.colorbar(im)
 
 
 
