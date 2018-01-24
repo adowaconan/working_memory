@@ -17,8 +17,9 @@ import pickle
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier,GradientBoostingClassifier,VotingClassifier
 from sklearn.svm import SVC
+from sklearn.naive_bayes_bayes import GaussianNB
 from mne.decoding import Vectorizer
 from sklearn.model_selection import StratifiedKFold
 from sklearn import metrics
@@ -53,7 +54,11 @@ for probe,encode in zip(files_probe,files_encode):
     title = 'sub%s, day%s,load2'%(sub,day)
     clfs['sub%s, day%s,load2'%(sub,day)] = []
     scores['sub%s, day%s,load2'%(sub,day)] = []
-    estimator = RandomForestClassifier(n_estimators=50,random_state=12345,class_weight='balanced')
+    estimators = [('random forest',RandomForestClassifier(n_estimators=50,random_state=12345,class_weight='balanced')),
+                  ('support vectors',SVC()),
+                  ('gradient boost',GradientBoostingClassifier(random_state=12345)),
+                  ('gaussian navie bayes',GaussianNB(priors=(0.4,0.6)))]
+    estimator = VotingClassifier(estimators,voting='soft',)
     train_data = epochs_probe.get_data()[:,:,50:]
     train_labels = epochs_probe.events[:,-1]
     test_data = epochs_encode.get_data()[:,:,50:]
@@ -157,7 +162,11 @@ for probe,delay in zip(files_probe,files_delay):
     title = 'sub%s, day%s,load2'%(sub,day)
     clfs['sub%s, day%s,load2'%(sub,day)] = []
     scores['sub%s, day%s,load2'%(sub,day)] = []
-    estimator = RandomForestClassifier(n_estimators=50,random_state=12345,class_weight='balanced')
+    estimators = [('random forest',RandomForestClassifier(n_estimators=50,random_state=12345,class_weight='balanced')),
+                  ('support vectors',SVC()),
+                  ('gradient boost',GradientBoostingClassifier(random_state=12345)),
+                  ('gaussian navie bayes',GaussianNB(priors=(0.4,0.6)))]
+    estimator = VotingClassifier(estimators,voting='soft',)
     train_data = epochs_probe.get_data()[:,:,50:]
     train_labels = epochs_probe.events[:,-1]
     test_data = epochs_delay.get_data()[:,:,50:]
@@ -225,8 +234,8 @@ for name,value in scores_test.items():
     sss_mean = sss.mean(2)
     sss_std = sss.std(2)
     fig,ax = plt.subplots(figsize=(10,10))
-    im = ax.imshow(sss_mean,origin='lower',aspect='auto',extent=[0,2000,0,2000])
-    ax.set(xlabel='test models at delay',ylabel='train models at probe',title=name)
+    im = ax.imshow(sss_mean.T,origin='lower',aspect='auto',extent=[0,2000,0,2000])
+    ax.set(label='test models at delay',ylabel='train models at probe',title=name)
     plt.colorbar(im)
     fig.savefig(os.path.join(saving_dir,'AUC scores_%s.png'%(name)),dpi=300)
 
