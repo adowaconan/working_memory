@@ -19,7 +19,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier,GradientBoostingClassifier,VotingClassifier
 from sklearn.svm import SVC
-from sklearn.naive_bayes_bayes import GaussianNB
+from sklearn.naive_bayes import GaussianNB
 from mne.decoding import Vectorizer
 from sklearn.model_selection import StratifiedKFold
 from sklearn import metrics
@@ -55,7 +55,7 @@ for probe,encode in zip(files_probe,files_encode):
     clfs['sub%s, day%s,load2'%(sub,day)] = []
     scores['sub%s, day%s,load2'%(sub,day)] = []
     estimators = [('random forest',RandomForestClassifier(n_estimators=50,random_state=12345,class_weight='balanced')),
-                  ('support vectors',SVC()),
+                  ('support vectors',SVC(C=10,kernel='rbf',probability=True,class_weight='balanced',random_state=12345)),
                   ('gradient boost',GradientBoostingClassifier(random_state=12345)),
                   ('gaussian navie bayes',GaussianNB(priors=(0.4,0.6)))]
     estimator = VotingClassifier(estimators,voting='soft',)
@@ -121,8 +121,8 @@ for name,value in scores_test.items():
     sss_mean = sss.mean(2)
     sss_std = sss.std(2)
     fig,ax = plt.subplots(figsize=(10,10))
-    im = ax.imshow(sss_mean,origin='lower',aspect='auto',extent=[0,2000,0,2000],interpolation='gaussian')
-    ax.set(xlabel='test models at delay',ylabel='train models at probe',title=name)
+    im = ax.imshow(sss_mean.T,origin='lower',aspect='auto',extent=[0,2000,0,2000],vmin=0.5,vmax=0.7)#,interpolation='gaussian')
+    ax.set(xlabel='test models at encode',ylabel='train models at probe',title=name)
     plt.colorbar(im)
     fig.savefig(os.path.join(saving_dir,'AUC scores_%s.png'%(name)),dpi=300)
 
@@ -138,7 +138,7 @@ for name,value in scores_test.items():
         sss = ccc[:,:,:,ii+1]
         sss_mean = sss.mean(2)
         sss_std = sss.std(2)
-        im = ax.imshow(sss_mean,origin='lower',aspect='auto',extent=[0,2000,0,2000],vmin=0.5,vmax=0.7)
+        im = ax.imshow(sss_mean.T,origin='lower',aspect='auto',extent=[0,2000,0,2000],vmin=0.5,vmax=0.9)
         ax.set(title=subplot_titles[ii])
     fig.subplots_adjust(right=0.8)
     cbar_ax = fig.add_axes([0.85,0.15,0.05,0.7])
@@ -147,6 +147,18 @@ for name,value in scores_test.items():
     fig.savefig(os.path.join(saving_dir,'confusion matrix of matices_%s.png'%(name)),dpi=300)
 #        plt.colorbar(im)
 
+plt.close('all')
+for name,value in scores_test.items():
+    ccc = np.array(value)
+    
+    sss = ccc[:,:,:,-1]
+    sss_mean = sss.mean(2)
+    sss_std = sss.std(2)
+    fig,ax = plt.subplots(figsize=(10,10))
+    im = ax.imshow(sss_mean.T,origin='lower',aspect='auto',extent=[0,2000,0,2000],)#vmin=-0.2,vmax=0.2)#,interpolation='gaussian')
+    ax.set(xlabel='test models at encode',ylabel='train models at probe',title=name)
+    plt.colorbar(im)
+    fig.savefig(os.path.join(saving_dir,'MCC scores_%s.png'%(name)),dpi=300)
 
 """train on probe, test on delay"""
 cv = StratifiedKFold(n_splits=3,shuffle=True,random_state=12345)
@@ -163,9 +175,9 @@ for probe,delay in zip(files_probe,files_delay):
     clfs['sub%s, day%s,load2'%(sub,day)] = []
     scores['sub%s, day%s,load2'%(sub,day)] = []
     estimators = [('random forest',RandomForestClassifier(n_estimators=50,random_state=12345,class_weight='balanced')),
-                  ('support vectors',SVC()),
+                  ('support vectors',SVC(C=10,kernel='rbf',probability=True,class_weight='balanced',random_state=12345)),
                   ('gradient boost',GradientBoostingClassifier(random_state=12345)),
-                  ('gaussian navie bayes',GaussianNB(priors=(0.4,0.6)))]
+                  ('gaussian navie bayes',GaussianNB(priors=(0.6,0.4)))]
     estimator = VotingClassifier(estimators,voting='soft',)
     train_data = epochs_probe.get_data()[:,:,50:]
     train_labels = epochs_probe.events[:,-1]
@@ -220,7 +232,7 @@ for probe,delay in zip(files_probe,files_delay):
 
 
 saving_dir = 'D:\\working_memory\\working_memory\\results\\train_probe_test_delay'
-if os.path.exist(saving_dir):
+if not os.path.exists(saving_dir):
     os.makedirs(saving_dir)
 pickle.dump(scores_test,open(saving_dir+ '\\probe-delay.p','wb'))  
 pickle.dump([scores,clfs],open(saving_dir+'\\probe-probe.p','wb'))           
@@ -234,7 +246,7 @@ for name,value in scores_test.items():
     sss_mean = sss.mean(2)
     sss_std = sss.std(2)
     fig,ax = plt.subplots(figsize=(10,10))
-    im = ax.imshow(sss_mean.T,origin='lower',aspect='auto',extent=[0,2000,0,2000])
+    im = ax.imshow(sss_mean.T,origin='lower',aspect='auto',extent=[0,6000,0,2000],vmin=0.5,vmax=0.7)
     ax.set(label='test models at delay',ylabel='train models at probe',title=name)
     plt.colorbar(im)
     fig.savefig(os.path.join(saving_dir,'AUC scores_%s.png'%(name)),dpi=300)
@@ -251,7 +263,7 @@ for name,value in scores_test.items():
         sss = ccc[:,:,:,ii+1]
         sss_mean = sss.mean(2)
         sss_std = sss.std(2)
-        im = ax.imshow(sss_mean,origin='lower',aspect='auto',extent=[0,2000,0,2000],vmin=0.5,vmax=0.7)
+        im = ax.imshow(sss_mean.T,origin='lower',aspect='auto',extent=[0,6000,0,2000],vmin=0.5,vmax=0.9)
         ax.set(title=subplot_titles[ii])
     fig.subplots_adjust(right=0.8)
     cbar_ax = fig.add_axes([0.85,0.15,0.05,0.7])
@@ -260,7 +272,18 @@ for name,value in scores_test.items():
     fig.savefig(os.path.join(saving_dir,'confusion matrix of matices_%s.png'%(name)),dpi=300)
 #        plt.colorbar(im)
 
-
+plt.close('all')
+for name,value in scores_test.items():
+    ccc = np.array(value)
+    
+    sss = ccc[:,:,:,-1]
+    sss_mean = sss.mean(2)
+    sss_std = sss.std(2)
+    fig,ax = plt.subplots(figsize=(10,10))
+    im = ax.imshow(sss_mean.T,origin='lower',aspect='auto',extent=[0,6000,0,2000],)#vmin=-0.2,vmax=0.2)#,interpolation='gaussian')
+    ax.set(xlabel='test models at delay',ylabel='train models at probe',title=name)
+    plt.colorbar(im)
+    fig.savefig(os.path.join(saving_dir,'MCC scores_%s.png'%(name)),dpi=300)
 
 
 
