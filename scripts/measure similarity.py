@@ -25,6 +25,7 @@ if not os.path.exists(saving_dir):
 epochs_ = glob(os.path.join(working_dir,'*-epo.fif'))
 results = {}
 for e in epochs_:
+    plt.close('all')
     epochs = mne.read_epochs(e,preload=True)
     sub,load,day = re.findall('\d+',e)
     # due to mne python add additional last sample to the data, we take it out and make it a even number length for the time dimension
@@ -54,7 +55,8 @@ for e in epochs_:
     euclidean = np.array(euclidean)
     cosine = np.array(cosine)
     # save the result in a dictionary
-    results['sub%s_load%s_day%s'%(sub,load,day)]={'euclidean_distances':euclidean,'cosine_distance':cosine}
+    results={'euclidean_distances':euclidean,'cosine_distance':cosine}
+    pickle.dump(results,open(os.path.join(working_dir,'similarity measure result_sub%s_load%s_day%s.p'%(sub,load,day)),'wb')  )  
     # take the mean over the trials
     euclidean_mean = euclidean.mean(0)
     # plot the mean euclidean distance over trials
@@ -70,7 +72,7 @@ for e in epochs_:
     ax.set(xlabel='Delay',ylabel='Encode',title='Cosine distance\nsub%s_load%s_day%s'%(sub,load,day))
     plt.colorbar(im)
     fig.savefig(os.path.join(saving_dir,'Cosine distance_sub%s_load%s_day%s.png'%(sub,load,day)),dpi=300)
-
-pickle.dump(results,open(os.path.join(working_dir,'similarity measure results.p'),'wb')  )  
+    plt.close('all')
+#pickle.dump(results,open(os.path.join(working_dir,'similarity measure results.p'),'wb')  )  
     
-
+#python "D:\\working_memory\\working_memory\\scripts\\measure similarity.py"
