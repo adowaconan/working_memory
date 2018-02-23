@@ -10,7 +10,6 @@ import os
 from glob import glob
 #import pandas as pd
 import numpy as np
-from sklearn.metrics.pairwise import euclidean_distances
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 #import scipy.io as so
