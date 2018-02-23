@@ -56,6 +56,7 @@ for e in epochs_:
     cosine = np.array(cosine)
     # save the result in a dictionary
     results={'euclidean_distances':euclidean,'cosine_distance':cosine}
+    # pickle save result for each subject
     pickle.dump(results,open(os.path.join(working_dir,'similarity measure result_sub%s_load%s_day%s.p'%(sub,load,day)),'wb')  )  
     # take the mean over the trials
     euclidean_mean = euclidean.mean(0)
