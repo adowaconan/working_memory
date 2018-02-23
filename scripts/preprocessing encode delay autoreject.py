@@ -19,9 +19,10 @@ os.chdir(working_dir)
 saving_dir = 'D:/working_memory/encode_delay_similarity/'
 if not os.path.exists(saving_dir):
     os.mkdir(saving_dir)
-
+# pick all the load2 files, eeg and event files
 eegs = glob(os.path.join(working_dir,'*l2*.vhdr'))
 evts = glob(os.path.join(working_dir+'\\EVT','*_encode.csv'))
+# hyperparameters for auto artifact correction
 n_interpolates = np.array([1,4,32])
 consensus_percs = np.linspace(0,1.0,11)
 for raw_,evt in zip(eegs,evts):
@@ -29,23 +30,26 @@ for raw_,evt in zip(eegs,evts):
     events = pd.read_csv(evt)
     events = events[['tms','code','Recode']].values.astype(int)
     events[:,1] = 0
-    events = events[::2,:]
+    events = events[::2,:]# get the odd rows
     event_id = {'0':0,'1':1}
-    raw = mne.io.read_raw_brainvision(raw_,preload=True,montage='standard_1020',eog=['LOc','ROc','Aux1'])
-    raw.set_channel_types({'STI 014':'stim','Aux1':'stim','LOc':'eog','ROc':'eog'})
-    raw.set_eeg_reference().apply_proj()
+    raw = mne.io.read_raw_brainvision(raw_,preload=True,montage='standard_1020',eog=['LOc','ROc','Aux1'])# load raw eeg data
+    raw.set_channel_types({'STI 014':'stim','Aux1':'stim','LOc':'eog','ROc':'eog'})# define channel types
+    raw.set_eeg_reference().apply_proj()# average re-referencing
     picks = mne.pick_types(raw.info,eeg=True,eog=True)
-    raw.filter(1,40,picks=picks,fir_design='firwin')
-    raw.notch_filter(np.arange(60,241,60),picks=picks,fir_design='firwin')
+    raw.filter(1,40,picks=picks,fir_design='firwin')# band pass filter
+    raw.notch_filter(np.arange(60,241,60),picks=picks,fir_design='firwin')# notch filter
+    # epoch the data without rejecting any segment
     epochs = mne.Epochs(raw,events=events,event_id=event_id,tmin=0,tmax=10,baseline=(9.8,10),preload=True,picks=picks,detrend=1,proj=False)
     #epochs['0'].average().plot()
     sub,load,day = re.findall('\d+',raw_)
+    # define threshold fitting function
     thresh_func = partial(compute_thresholds,picks=picks,method='bayesian_optimization',random_state=12345)
+    # define auto-correction method, based on local values, both eeg and eog channels are included
     ar = LocalAutoRejectCV(n_interpolates,consensus_percs,picks=picks,thresh_func=thresh_func)
-    ar.fit(epochs)
+    ar.fit(epochs)# why did I do fit_transform?
     print('transform the data')
     epochs = ar.transform(epochs)
-    epochs.pick_types(meg=False,eeg=True,eog=False)
+    epochs.pick_types(meg=False,eeg=True,eog=False)# take away the eog channels
     epochs.save(os.path.join(saving_dir,'sub_%s_load%s_day%s_encode_delay-epo.fif'%(sub,load,day)))
 
 
@@ -63,29 +67,32 @@ condition = 'l5_';#n = 2
 files_vhdr = glob(working_dir+'*%s*.vhdr'%condition)
 files_evt = glob(os.path.join(evt_dir,'*%s*'%condition))
 
-
+# get the order of the stimulu
 trial_orders = pd.read_excel('D:\\working_memory\\working_memory\\EEG Load 5 and 2 Design Fall 2015.xlsx',sheetname='EEG_Load5_WM',header=None)
 trial_orders.columns = ['load','image1','image2','image3','image4','image5','target','probe']
 trial_orders['target'] = 1- trial_orders['target']
 trial_orders["row"] = np.arange(1,41)
+# the for-loop is for generating event files only
 for n in range(len(files_vhdr)):
     sub,_,day = re.findall('\d+',files_vhdr[n])
     subject_evt = [f for f in files_evt if ('suj%s_'%sub in f) and ('day%s'%day in f)][0]
     events = pd.read_csv(subject_evt,sep='\t')
-    try:
+    try:# annoying \t and spaces
         events.columns = ['tms','code','TriNo','RT','Recode','Comnt1','Comnt2']
         events['Comnt'] = events['Comnt1'].map(str) +' ' +events['Comnt2'].map(str)    
     except:
         events.columns = ['tms','code','TriNo','RT','Recode','Comnt']
 #    print(sub,day,events.shape)
-    if int(sub) == 11:
+    if int(sub) == 11:# take the first trial out
         #print('in')
         idx = trial_orders.row!=1
         events = events.iloc[5:,:]
     else:
         idx = np.array([True] * 40)
     working_trial_orders = trial_orders[idx]
+    # get the rows of delay
     events_delay = events[events['Comnt']=='Delay onset']
+    # get the target value, not informative if not using machine learning
     events_delay['Recode']=working_trial_orders['target'].values
     if events_delay['Comnt'].isnull().values.any():
         events_delay = events_delay.dropna()
