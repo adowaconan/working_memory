@@ -79,7 +79,7 @@ for e in epochs_:
     plt.close('all')
 #pickle.dump(results,open(os.path.join(working_dir,'similarity measure results.p'),'wb')  )  
     
-#python "D:\\working_memory\\working_memory\\scripts\\measure similarity.py"
+#python "D:\\working_memory\\working_memory\\scripts\\preprocessing encode delay autoreject.py"
 epochs_ = glob(os.path.join(working_dir,'*load5*-epo.fif'))
 
 for e in epochs_:
