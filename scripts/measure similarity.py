@@ -19,7 +19,9 @@ import scipy.spatial as sp
 import pickle
 
 working_dir = 'D:/working_memory/encode_delay_similarity/'
-
+saving_dir = 'D:\\working_memory\\working_memory\\results\\similarity measure'
+if not os.path.exists(saving_dir):
+    os.mkdir(saving_dir)
 epochs_ = glob(os.path.join(working_dir,'*-epo.fif'))
 results = {}
 for e in epochs_:
@@ -49,9 +51,9 @@ for e in epochs_:
 
     fig,ax = plt.subplots(figsize=(12,12))
     im = ax.imshow(confusion_mean,origin='lower',aspect='auto',cmap='RdBu_r',extent=[0,6000,0,4000])
-    ax.set(xlabel='Delay',ylabel='Encode',title='Euclidean distance')
+    ax.set(xlabel='Delay',ylabel='Encode',title='Euclidean distance\nsub%s_load%s_day%s'%(sub,load,day))
     plt.colorbar(im)
-    fig.savefig(os.path.join(working_dir,'Euclidean distance_sub%s_load%s_day%s.png'%(sub,load,day)),dpi=300)
+    fig.savefig(os.path.join(saving_dir,'Euclidean distance_sub%s_load%s_day%s.png'%(sub,load,day)),dpi=300)
     
     confusion = []
     for trial in tqdm(range(images.shape[0])):
@@ -67,9 +69,9 @@ for e in epochs_:
     
     fig,ax = plt.subplots(figsize=(12,12))
     im = ax.imshow(confusion_mean,origin='lower',aspect='auto',cmap='RdBu_r',extent=[0,6000,0,4000])
-    ax.set(xlabel='Delay',ylabel='Encode',title='Cosine distance')
+    ax.set(xlabel='Delay',ylabel='Encode',title='Cosine distance\nsub%s_load%s_day%s'%(sub,load,day))
     plt.colorbar(im)
-    fig.savefig(os.path.join(working_dir,'Cosine distance_sub%s_load%s_day%s.png'%(sub,load,day)),dpi=300)
+    fig.savefig(os.path.join(saving_dir,'Cosine distance_sub%s_load%s_day%s.png'%(sub,load,day)),dpi=300)
 
 pickle.dump(results,open(os.path.join(working_dir,'similarity measure results.p'),'wb')  )  
     
