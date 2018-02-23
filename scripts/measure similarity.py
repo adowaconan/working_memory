@@ -28,7 +28,7 @@ for e in epochs_:
     plt.close('all')
     epochs = mne.read_epochs(e,preload=True)
     sub,load,day = re.findall('\d+',e)
-    for window_size in [int(20),int(50),int(100)]:
+    for window_size in [int(10),int(20),int(50),int(100)]:
         # due to mne python add additional last sample to the data, we take it out and make it a even number length for the time dimension
         images = epochs.copy().crop(0,4).get_data()[:,:,:4000]*1e6
         delay = epochs.copy().crop(4,9.8).get_data()[:,:,:5800]*1e6
@@ -89,7 +89,7 @@ for e in epochs_:
     plt.close('all')
     epochs = mne.read_epochs(e,preload=True)
     sub,load,day = re.findall('\d+',e)
-    for window_size in [int(20),int(50),int(100)]:
+    for window_size in [int(10),int(20),int(50),int(100)]:
         # due to mne python add additional last sample to the data, we take it out and make it a even number length for the time dimension
         images = epochs.copy().crop(0,10).get_data()[:,:,:10000]*1e6
         delay = epochs.copy().crop(10,15.8).get_data()[:,:,:5800]*1e6
