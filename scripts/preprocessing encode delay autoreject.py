@@ -10,8 +10,7 @@ import os
 from glob import glob
 import pandas as pd
 import numpy as np
-from autoreject import (LocalAutoRejectCV,compute_thresholds,
-                        get_rejection_threshold)
+from autoreject import (LocalAutoRejectCV,compute_thresholds)
 from functools import partial
 import re
 
