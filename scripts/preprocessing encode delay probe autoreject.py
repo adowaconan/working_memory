@@ -52,9 +52,9 @@ for raw_,evt in zip(eegs,evts):
     epochs = ar.transform(epochs)
     epochs.pick_types(meg=False,eeg=True,eog=False)# take away the eog channels
     epochs.save(os.path.join(saving_dir,'sub_%s_load%s_day%s_encode_delay-epo.fif'%(sub,load,day)))
-    fig, axes = plt.subplots(figsize=(16,8),nros=2)
-    for key, value in event_id.items():
-        epochs[key].average().plot(title=key,ax=axes[value])
+    fig, axes = plt.subplots(figsize=(16,8),nrows=2)
+    for (key, value),ax in zip(event_id.items(),axes):
+        epochs[key].average().plot(titles=key,axes=ax)
     fig.savefig(os.path.join(saving_dir,'sub_%s_load%s_day%s_encode_delay-epo.png'%(sub,load,day)))
     plt.close('all')
 
@@ -155,7 +155,7 @@ for raw_,evt in zip(eegs,evts):
     epochs = ar.transform(epochs)
     epochs.pick_types(meg=False,eeg=True,eog=False)
     epochs.save(os.path.join(saving_dir,'sub_%s_load%s_day%s_encode_delay-epo.fif'%(sub,load,day)))
-    fig, axes = plt.subplots(figsize=(16,8),nros=2)
+    fig, axes = plt.subplots(figsize=(16,8),nrows=2)
     for key, value in event_id.items():
         epochs[key].average().plot(title=key,ax=axes[value])
     fig.savefig(os.path.join(saving_dir,'sub_%s_load%s_day%s_encode_delay-epo.png'%(sub,load,day)))
