@@ -45,7 +45,7 @@ for e in epochs_:
         euclidean,cosine = [],[]
         for trial in tqdm(range(images.shape[0]),desc='sub%s_load%s_day%s'%(sub,load,day)):
             # euclidean distance
-            temp_confusion = sp.distance.cdist(images_[trial].T,delay_[trial].T,'euclidean')
+            temp_confusion = 0-sp.distance.cdist(images_[trial].T,delay_[trial].T,'euclidean')
             euclidean.append(temp_confusion)
             # cosine distance
             # subtract from 1 because the algorithm have cosine distance subtracted from 1,
@@ -106,7 +106,7 @@ for e in epochs_:
         euclidean,cosine = [],[]
         for trial in tqdm(range(images.shape[0]),desc='distance'):
             # euclidean distance
-            temp_confusion = sp.distance.cdist(images_[trial].T,delay_[trial].T,'euclidean')
+            temp_confusion = 0-sp.distance.cdist(images_[trial].T,delay_[trial].T,'euclidean')
             euclidean.append(temp_confusion)
             # cosine distance
             # subtract from 1 because the algorithm have cosine distance subtracted from 1,
