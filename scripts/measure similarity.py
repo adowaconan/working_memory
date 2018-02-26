@@ -18,7 +18,7 @@ import scipy.spatial as sp
 import pickle
 
 working_dir = 'D:/working_memory/encode_delay_similarity/'
-saving_dir = 'D:\\working_memory\\working_memory\\results\\similarity measure'
+saving_dir = 'D:\\working_memory\\working_memory\\results\\similarity measure\\pdf\\'
 if not os.path.exists(saving_dir):
     os.mkdir(saving_dir)
 epochs_ = glob(os.path.join(working_dir,'*load2*-epo.fif'))
@@ -69,7 +69,7 @@ for e in epochs_:
         for a in [2000]:
             ax.axhline(a,color='k',lw=2,)
         plt.colorbar(im)
-        fig.savefig(os.path.join(saving_dir,'Euclidean distance_sub%s_load%s_day%s_windowsize_%d.png'%(sub,load,day,window_size)),dpi=300)
+        fig.savefig(os.path.join(saving_dir,'Euclidean distance_sub%s_load%s_day%s_windowsize_%d.pdf'%(sub,load,day,window_size)),dpi=300)
         # plot the mean cosine distance over trials
         cosine_mean = cosine.mean(0)
         fig,ax = plt.subplots(figsize=(12,12))
@@ -78,7 +78,7 @@ for e in epochs_:
         for a in [2000]:
             ax.axhline(a,color='k',lw=2,)
         plt.colorbar(im)
-        fig.savefig(os.path.join(saving_dir,'Cosine distance_sub%s_load%s_day%s_windowsize_%d.png'%(sub,load,day,window_size)),dpi=300)
+        fig.savefig(os.path.join(saving_dir,'Cosine distance_sub%s_load%s_day%s_windowsize_%d.pdf'%(sub,load,day,window_size)),dpi=300)
         plt.close('all')
 #pickle.dump(results,open(os.path.join(working_dir,'similarity measure results.p'),'wb')  )  
     
@@ -130,7 +130,7 @@ for e in epochs_:
         for a in [2000,4000,6000,8000]:
             ax.axhline(a,color='k',lw=2,)
         plt.colorbar(im)
-        fig.savefig(os.path.join(saving_dir,'Euclidean distance_sub%s_load%s_day%s_windowsize_%d.png'%(sub,load,day,window_size)),dpi=300)
+        fig.savefig(os.path.join(saving_dir,'Euclidean distance_sub%s_load%s_day%s_windowsize_%d.pdf'%(sub,load,day,window_size)),dpi=300)
         # plot the mean cosine distance over trials
         cosine_mean = cosine.mean(0)
         fig,ax = plt.subplots(figsize=(12,12))
@@ -139,5 +139,5 @@ for e in epochs_:
         for a in [2000,4000,6000,8000]:
             ax.axhline(a,color='k',lw=2,)
         plt.colorbar(im)
-        fig.savefig(os.path.join(saving_dir,'Cosine distance_sub%s_load%s_day%s_windowsize_%d.png'%(sub,load,day,window_size)),dpi=300)
+        fig.savefig(os.path.join(saving_dir,'Cosine distance_sub%s_load%s_day%s_windowsize_%d.pdf'%(sub,load,day,window_size)),dpi=300)
         plt.close('all')
