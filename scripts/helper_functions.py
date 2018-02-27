@@ -8,6 +8,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from sklearn.linear_model import SGDClassifier
 from sklearn.ensemble import RandomForestClassifier,VotingClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import Pipeline
 from mne.decoding import Vectorizer
 from sklearn import metrics
@@ -16,15 +19,24 @@ import numpy as np
 
 def make_clf(vectorized = True,hard_soft='soft',voting=True):
     linear_ = SGDClassifier(max_iter=int(2e3),tol=1e-3,random_state=12345,loss='modified_huber')
-    svc = SVC(max_iter=int(5e2),tol=1e-3,random_state=12345,kernel='rbf',probability=True,)
-    rf = RandomForestClassifier(n_estimators=50,random_state=12345)
+    svc = SVC(max_iter=int(2e3),tol=1e-3,random_state=12345,kernel='rbf',probability=True,)
+    rf = RandomForestClassifier(n_estimators=100,random_state=12345)
+    knn = KNeighborsClassifier(n_neighbors=10,)
+    bayes = GaussianNB()
+    NN = MLPClassifier(hidden_layer_sizes=(100,50,20),learning_rate='adaptive',solver='sgd',max_iter=int(1e3),
+                       shuffle=True,)
     
     clf = []
     if vectorized:
         clf.append(('vectorize',Vectorizer()))
     clf.append(('scaler',StandardScaler()))
     if voting:
-        clf.append(('estimator',VotingClassifier([('SGD',linear_),('SVM',svc),('RF',rf)],voting=hard_soft,)))
+        clf.append(('estimator',VotingClassifier([('SGD',linear_),
+                                                  ('SVM',svc),
+                                                  ('RF',rf),
+                                                  ('KNN',knn),
+                                                  ('naive_bayes',bayes),
+                                                  ('DNN',NN)],voting=hard_soft,)))
     else:
         clf.append(('estimator',rf))
     clf = Pipeline(clf)
