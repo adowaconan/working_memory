@@ -6,11 +6,10 @@ Created on Tue Feb 27 11:00:20 2018
 """
 import os
 os.chdir('D:/working_memory/working_memory/scripts')
-from helper_functions import make_clf,row_selection,prediction_pipeline
+from helper_functions import make_clf,prediction_pipeline
 import numpy as np
 import mne
 from matplotlib import pyplot as plt
-import seaborn as sns
 import pandas as pd
 import re
 working_dir = 'D:/working_memory/encode_delay_prode_RSA_preprocessing/'
@@ -18,11 +17,9 @@ saving_dir = 'D:/working_memory/working_memory/results/train_probe_test_encode/'
 if not os.path.exists(saving_dir):
     os.mkdir(saving_dir)
 from glob import glob
-from tqdm import tqdm
 
 
 from sklearn.model_selection import StratifiedKFold
-from sklearn import metrics
 from random import shuffle
 from scipy.stats import percentileofscore
 def Permutation_test_(data1, data2, n1=100,n2=100):
@@ -93,7 +90,7 @@ for e, e_ in zip(epoch_files,event_files):
     predictive_measurements={'predictive ability of order':[],'predictive ability of positive and negative stimuli':[]}
     cv = StratifiedKFold(n_splits=5,shuffle=True,random_state=12345)
     for train,test in cv.split(probe,labels):
-        clf = make_clf(hard_soft='soft',voting=True)
+        clf = make_clf(hard_soft='soft',voting=False)
         clf.fit(probe[train],labels[train])
         #print(metrics.classification_report(labels[test],clf.predict(probe[test])))
         ck = prediction_pipeline(labels,[image1,image2],clf,working_trial_orders)
@@ -109,7 +106,7 @@ for e, e_ in zip(epoch_files,event_files):
     df['positive_vs_negative'].append(np.mean(predictive_measurements['predictive ability of positive and negative stimuli']))
     df['method'].append('5-fold cross validation')
     # what if I over fit the model?
-    clf = make_clf(hard_soft='soft',voting=True)
+    clf = make_clf(hard_soft='soft',voting=False)
     clf.fit(probe,labels)
     ck = prediction_pipeline(labels,[image1,image2],clf,working_trial_orders)
     print('subject',sub,'load',load,'over fit',)
@@ -136,16 +133,16 @@ ax.errorbar([-.2,.8,1.8],dff[['image1','image2','positive_vs_negative']].values.
             dff[['image1','image2','positive_vs_negative']].values.std(0)/np.sqrt(len(dff)),linestyle='',color='k')
 ax.set(xticks=[-.3,.6,1.6],xticklabels=['image 1','image 2','pos vs neg'],ylabel='ROC AUC')
 ax.axhline(0.5,color='k',linestyle='--',alpha=0.7)
-ax.set(title='predictive ability of image order and positive encoding images\nVoting')
+ax.set(title='predictive ability of image order and positive encoding images\RandomForest-100')
 ax.legend()
-fig.savefig(saving_dir+'predictive ability of image order and positive encoding images.png',dpi=500)
+fig.savefig(saving_dir+'predictive ability of image order and positive encoding images(rf).png',dpi=500)
 
 a,b,c= Permutation_test_(ddf['image1'].values,ddf['image2'].values)
 print(b,c)
 a,b,c= Permutation_test_(dff['image1'].values,dff['image2'].values)
 print(b,c)
 
-
+df.to_csv(saving_dir+'rf results.csv',index=False)
 
 
 
