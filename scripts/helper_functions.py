@@ -24,7 +24,7 @@ def make_clf(vectorized = True,hard_soft='soft',voting=True):
     knn = KNeighborsClassifier(n_neighbors=10,)
     bayes = GaussianNB()
     NN = MLPClassifier(hidden_layer_sizes=(100,50,20),learning_rate='adaptive',solver='sgd',max_iter=int(1e3),
-                       shuffle=True,)
+                       shuffle=True,random_state=12345)
     
     clf = []
     if vectorized:
