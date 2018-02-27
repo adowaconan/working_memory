@@ -10,6 +10,7 @@ from helper_functions import make_clf,row_selection,prediction_pipeline
 import numpy as np
 import mne
 from matplotlib import pyplot as plt
+import seaborn as sns
 import pandas as pd
 import re
 working_dir = 'D:/working_memory/encode_delay_prode_RSA_preprocessing/'
@@ -103,8 +104,21 @@ for e, e_ in zip(epoch_files,event_files):
     df['method'].append('over fitting')
 
 df = pd.DataFrame(df)
-
-
+ddf = df[df['method']=='5-fold cross validation']
+dff = df[df['method']=='over fitting']
+fig,ax = plt.subplots(figsize=(10,8))
+ax.bar([-0.5,0.5,1.5],ddf[['image1','image2','positive_vs_negative']].values.mean(0),alpha=0.5,
+       label='5-fold',color='blue',width=.3)
+ax.errorbar([-0.5,0.5,1.5],ddf[['image1','image2','positive_vs_negative']].values.mean(0),
+            ddf[['image1','image2','positive_vs_negative']].values.std(0),linestyle='',color='k')
+ax.bar([-.2,.8,1.8],dff[['image1','image2','positive_vs_negative']].values.mean(0),alpha=0.5,
+       label='over fit',color='red',width=.3)
+ax.errorbar([-.2,.8,1.8],dff[['image1','image2','positive_vs_negative']].values.mean(0),
+            dff[['image1','image2','positive_vs_negative']].values.std(0),linestyle='',color='k')
+ax.set(xticks=[-.3,.6,1.6],xticklabels=['image 1','image 2','pos vs neg'],ylabel='ROC AUC')
+ax.axhline(0.5,color='k',linestyle='--',alpha=0.7)
+ax.set(title='predictive ability of image order and positive encoding images')
+ax.legend()
 
 
 
