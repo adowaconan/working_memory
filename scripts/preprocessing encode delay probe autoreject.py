@@ -3,6 +3,8 @@
 Created on Mon Feb 26 17:01:04 2018
 
 @author: ning
+
+python "D:\\working_memory\\working_memory\\scripts\\preprocessing encode delay probe autoreject.py"
 """
 
 import mne
@@ -51,11 +53,11 @@ for raw_,evt in zip(eegs,evts):
     print('transform the data')
     epochs = ar.transform(epochs)
     epochs.pick_types(meg=False,eeg=True,eog=False)# take away the eog channels
-    epochs.save(os.path.join(saving_dir,'sub_%s_load%s_day%s_encode_delay-epo.fif'%(sub,load,day)))
+    epochs.save(os.path.join(saving_dir,'sub_%s_load%s_day%s_encode_delay_probe-epo.fif'%(sub,load,day)))
     fig, axes = plt.subplots(figsize=(16,8),nrows=2)
     for (key, value),ax in zip(event_id.items(),axes):
         epochs[key].average().plot(titles=key,axes=ax)
-    fig.savefig(os.path.join(saving_dir,'sub_%s_load%s_day%s_encode_delay-epo.png'%(sub,load,day)))
+    fig.savefig(os.path.join(saving_dir,'sub_%s_load%s_day%s_encode_delay_probe.png'%(sub,load,day)))
     plt.close('all')
 
 
@@ -131,7 +133,7 @@ eegs = glob(os.path.join(working_dir,'*l5*.vhdr'))
 evts = glob(os.path.join('D:\\working_memory\\EVT_load5','*_probe.csv'))
 n_interpolates = np.array([1,4,32])
 consensus_percs = np.linspace(0,1.0,11)
-for raw_,evt in zip(eegs,evts):
+for raw_,evt in zip(eegs[1:],evts[1:]):
     print(raw_,evt)
     events = pd.read_csv(evt)
     events = events[['tms','code','Recode']].values.astype(int)
@@ -154,11 +156,11 @@ for raw_,evt in zip(eegs,evts):
     print('transform the data')
     epochs = ar.transform(epochs)
     epochs.pick_types(meg=False,eeg=True,eog=False)
-    epochs.save(os.path.join(saving_dir,'sub_%s_load%s_day%s_encode_delay-epo.fif'%(sub,load,day)))
+    epochs.save(os.path.join(saving_dir,'sub_%s_load%s_day%s_encode_delay_probe-epo.fif'%(sub,load,day)))
     fig, axes = plt.subplots(figsize=(16,8),nrows=2)
     for key, value in event_id.items():
-        epochs[key].average().plot(title=key,ax=axes[value])
-    fig.savefig(os.path.join(saving_dir,'sub_%s_load%s_day%s_encode_delay-epo.png'%(sub,load,day)))
+        epochs[key].average().plot(titles=key,axes=axes[value])
+    fig.savefig(os.path.join(saving_dir,'sub_%s_load%s_day%s_encode_delay_probe.png'%(sub,load,day)))
     plt.close('all')
 
 
