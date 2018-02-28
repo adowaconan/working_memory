@@ -3,11 +3,15 @@
 Created on Tue Feb 27 15:45:16 2018
 
 @author: ning
+
+I train a classifier to distinguish positive probe (old image) vs negative probe (new image)
+and predict on a window of time in the delay period what the probability is the signal is 
+indicating the positive probe image. The prediction is done only on the positive probe trials
 """
 
 import os
 os.chdir('D:/working_memory/working_memory/scripts')
-from helper_functions import make_clf,prediction_pipeline
+from helper_functions import make_clf#,prediction_pipeline
 import numpy as np
 import mne
 from matplotlib import pyplot as plt
@@ -20,14 +24,13 @@ if not os.path.exists(saving_dir):
     os.mkdir(saving_dir)
 from glob import glob
 from sklearn.model_selection import StratifiedKFold
-
+import pickle
 condition = 'load2'
 event_dir = 'D:\\working_memory\\EVT\\*_probe.csv'
 epoch_files = glob(os.path.join(working_dir,'*%s*-epo.fif'%(condition)))
 event_files = glob(event_dir)
 missing = np.hstack([np.arange(11,17),[18]])#missing 26  and 64
-df = {'sub':[],'image1':[],'image2':[],'method':[],'positive_vs_negative':[],
-      'load':[]}
+df = []
 for e, e_ in zip(epoch_files,event_files):
 #e = epoch_files[0]
 #e_= event_files[0]
@@ -88,6 +91,7 @@ for e, e_ in zip(epoch_files,event_files):
         pred_store = np.array(pred_store)
         delay_dynamic_pred.append(pred_store.mean(1)[:,-1])
     delay_dynamic_pred = np.array(delay_dynamic_pred)
+    df.append([int(sub),int(load),int(day),delay_dynamic_pred])
     delay_dynamic_pred_mean = delay_dynamic_pred.mean(0)
     delay_dynamic_pred_se = delay_dynamic_pred.std(0)/np.sqrt(5)
     fig,ax = plt.subplots(figsize=(12,8))
@@ -100,6 +104,6 @@ for e, e_ in zip(epoch_files,event_files):
     ax.set(xlabel='delay',ylabel='prod of being the probe image',xlim=(0,6000))
     ax.axhline(0.5,color='blue',linestyle='--',alpha=.8)
     fig.savefig(saving_dir+'sub%s,load%s,day%s,probabilistic prediction of thinking the probe image.png'%(sub,load,day),dpi=400)
-    
+    pickle.dump(open(working_dir+'sub%s,load%s,day%s,probabilistic prediction of thinking the probe image'%(sub,load,day),'wb'))
     
                 
