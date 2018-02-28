@@ -104,6 +104,6 @@ for e, e_ in zip(epoch_files,event_files):
     ax.set(xlabel='delay',ylabel='prod of being the probe image',xlim=(0,6000))
     ax.axhline(0.5,color='blue',linestyle='--',alpha=.8)
     fig.savefig(saving_dir+'sub%s,load%s,day%s,probabilistic prediction of thinking the probe image.png'%(sub,load,day),dpi=400)
-    pickle.dump(open(working_dir+'sub%s,load%s,day%s,probabilistic prediction of thinking the probe image'%(sub,load,day),'wb'))
+pickle.dump(df,open(working_dir+'probabilistic prediction of thinking the probe image'%(sub,load,day),'wb'))
     
                 
