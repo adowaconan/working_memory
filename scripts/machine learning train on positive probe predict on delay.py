@@ -38,10 +38,12 @@ for e, e_ in zip(epoch_files,event_files):
     epochs = mne.read_epochs(e,preload=True)
     sub,load,day = re.findall('\d+',e)
     epochs.resample(100)
+    # experiment setting
     trial_orders = pd.read_excel('D:\\working_memory\\working_memory\\EEG Load 5 and 2 Design Fall 2015.xlsx',sheetname='EEG_Load2_WM',header=None)
     trial_orders.columns = ['load','image1','image2','target','probe']
     trial_orders['target'] = 1- trial_orders['target']
     trial_orders["row"] = np.arange(1,101)
+    # exceptions for subjects and trials
     sub,load,day = re.findall('\d+',e)
     if int(sub) in missing:
         #print('in')
@@ -52,9 +54,11 @@ for e, e_ in zip(epoch_files,event_files):
     if int(sub) == 11:
         idx[0] = False
     working_trial_orders = trial_orders[idx]
+    # the original event file before artifact correction
     original_events = pd.read_csv(e_)
     labels = epochs.events[:,-1]
     onset_times = epochs.events[:,0]
+    # to get which trials are left in the processed data
     C = []
     for k in original_events.iloc[:,0]:
         if any(k == p for p in onset_times):
@@ -76,8 +80,9 @@ for e, e_ in zip(epoch_files,event_files):
     
     delay_dynamic_pred = []
     for train,test in cv.split(probe,labels):
-        clf = make_clf(hard_soft='soft',voting=False)
+        clf = make_clf(hard_soft='soft',voting=False)# use less computational tense classifiers
         clf.fit(probe[train],labels[train])
+        # temporal prediction
         temporal_idx = 0
         pred_store = []
         for ii in tqdm(range(60000)):
@@ -86,7 +91,7 @@ for e, e_ in zip(epoch_files,event_files):
             pred_ = clf.predict_proba(delay[pos_select,:,temporal_idx:temporal_idx+int(2*epochs.info['sfreq'])])
             pred_store.append(pred_)
             temporal_idx += 1
-            if delay.shape[-1] - (temporal_idx+int(2*epochs.info['sfreq'])) <=0:
+            if delay.shape[-1] - (temporal_idx+int(2*epochs.info['sfreq'])) <=0:# stop when the sliding window hits the end
                 break
         pred_store = np.array(pred_store)
         delay_dynamic_pred.append(pred_store.mean(1)[:,-1])
@@ -94,6 +99,7 @@ for e, e_ in zip(epoch_files,event_files):
     df.append([int(sub),int(load),int(day),delay_dynamic_pred])
     delay_dynamic_pred_mean = delay_dynamic_pred.mean(0)
     delay_dynamic_pred_se = delay_dynamic_pred.std(0)/np.sqrt(5)
+    # plotting
     fig,ax = plt.subplots(figsize=(12,8))
     ax.plot(np.linspace(0,6000,delay_dynamic_pred.shape[1]),delay_dynamic_pred_mean,color='k',alpha=1.,)
     ax.fill_between(np.linspace(0,6000,delay_dynamic_pred.shape[1]),
