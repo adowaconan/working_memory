@@ -103,8 +103,7 @@ if __name__ == '__main__':#  the way to force parellel processing
         scores_within = np.array(scores_within)
         scores_encode = np.array(scores_encode)
         # plotting
-        vmax = np.max([stats.scoreatpercentile(scores_within.flatten(),.95),
-                       stats.scoreatpercentile(scores_encode.flatten(),.95)])
+        vmax = np.min([scores_within.flatten().max(),scores_encode.flatten().max()])-.1
         fig,axes = plt.subplots(figsize=(16,7),ncols=2)
         ax=axes[0]
         im=ax.imshow(scores_within.mean(0),origin='lower',aspect='auto',cmap=plt.cm.coolwarm,
