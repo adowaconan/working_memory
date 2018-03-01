@@ -112,7 +112,7 @@ if __name__ == '__main__':#  the way to force parellel processing
         patterns = np.array(patterns)
         info = epochs.info
         evoked = mne.EvokedArray(-patterns.mean(0).T,info)
-        evoked.plot_joint(times=[.5,.75,.95,1.15,1.35])
+        evoked.save(saving_dir+'within_cross_modal_time_generalization_sub%sload%sday%s-evo.fif'%(sub,load,day))
         to_save = {'within':scores_within,'cross':scores_encode}
         pickle.dump(to_save,open(saving_dir+'within_cross_modal_time_generalization_sub%sload%sday%s.p'%(sub,load,day),'wb'))
         # plotting, contour
