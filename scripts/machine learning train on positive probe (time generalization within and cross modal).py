@@ -18,8 +18,10 @@ if __name__ == '__main__':#  the way to force parellel processing
     import numpy as np
     import mne
     from matplotlib import pyplot as plt
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
     import pandas as pd
     from scipy import stats as stats
+    import pickle
     import re
     working_dir = 'D:/working_memory/encode_delay_prode_RSA_preprocessing/'
     saving_dir = 'D:/working_memory/working_memory/results/train_probe_test_encode/within_cross/'
@@ -102,21 +104,41 @@ if __name__ == '__main__':#  the way to force parellel processing
         
         scores_within = np.array(scores_within)
         scores_encode = np.array(scores_encode)
+        to_save = {'within':scores_within,'cross':scores_encode}
+        pickle.dump(to_save,open(working_dir+'within_cross_modal_time_generalization_sub%sload%sday%s.p'%(sub,load,day),'wb'))
         # plotting
-        vmax = np.min([scores_within.flatten().max(),scores_encode.flatten().max()])-.1
+#        vmax = np.min([scores_within.flatten().max(),scores_encode.flatten().max()])-.1
+#        fig,axes = plt.subplots(figsize=(16,7),ncols=2)
+#        ax=axes[0]
+#        im=ax.imshow(scores_within.mean(0),origin='lower',aspect='auto',cmap=plt.cm.coolwarm,
+#                     extent=[0,2000,0,2000],vmin=.5,vmax=vmax)
+#        ax.set(xlabel='test time',ylabel='train time',title='train test within probe')
+#        ax=axes[1]
+#        im=ax.imshow(scores_encode.mean(0),origin='lower',aspect='auto',cmap=plt.cm.coolwarm,
+#                     extent=[0,2000,0,2000],vmin=.5,vmax=vmax)
+#        ax.set(xlabel='test time',ylabel='train time',title='train on probe, test on encode')
+#        plt.colorbar(im)
+#        fig.suptitle('sub_%s,load_%s,day_%s'%(sub,load,day))
+#        fig.tight_layout()
+#        fig.savefig(saving_dir+'within_cross_modal_time_generalization_sub%sload%sday%s.png'%(sub,load,day),dpi=300)
+#        
+        
         fig,axes = plt.subplots(figsize=(16,7),ncols=2)
         ax=axes[0]
         im=ax.imshow(scores_within.mean(0),origin='lower',aspect='auto',cmap=plt.cm.coolwarm,
-                     extent=[0,2000,0,2000],vmin=.5,vmax=vmax)
+                     extent=[0,2000,0,2000],vmin=.5,)
+        driver = make_axes_locatable(ax)
+        cax = driver.append_axes('right',size='5%',pad=0.05)
+        fig.colorbar(im,cax=cax)
         ax.set(xlabel='test time',ylabel='train time',title='train test within probe')
-        
-        
         ax=axes[1]
         im=ax.imshow(scores_encode.mean(0),origin='lower',aspect='auto',cmap=plt.cm.coolwarm,
-                     extent=[0,2000,0,2000],vmin=.5,vmax=vmax)
+                     extent=[0,2000,0,2000],vmin=.5,)
         ax.set(xlabel='test time',ylabel='train time',title='train on probe, test on encode')
-        plt.colorbar(im)
+        driver = make_axes_locatable(ax)
+        cax = driver.append_axes('right',size='5%',pad=0.05)
+        fig.colorbar(im,cax=cax)
         fig.suptitle('sub_%s,load_%s,day_%s'%(sub,load,day))
         fig.tight_layout()
-        fig.savefig(saving_dir+'within_cross_modal_time_generalization_sub%sload%sday%s.png'%(sub,load,day),dpi=300)
+        fig.savefig(saving_dir+'diff_scale_within_cross_modal_time_generalization_sub%sload%sday%s.png'%(sub,load,day),dpi=300)
         
