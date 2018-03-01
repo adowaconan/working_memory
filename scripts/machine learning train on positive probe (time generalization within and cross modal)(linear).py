@@ -22,7 +22,7 @@ if __name__ == '__main__':#  the way to force parellel processing
     from mpl_toolkits.axes_grid1 import make_axes_locatable
     import pandas as pd
     from mne.decoding import get_coef
-    from scipy import stats as stats
+#    from scipy import stats as stats
     import pickle
     import re
     working_dir = 'D:/working_memory/encode_delay_prode_RSA_preprocessing/'

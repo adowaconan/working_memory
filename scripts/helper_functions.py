@@ -52,7 +52,7 @@ def make_clf(vectorized = True,hard_soft='soft',voting=True,decoding=True):
                                                   ('DNN',NN),
                                                   ('GDB',gdb)],voting=hard_soft,)))
     elif voting == 'linear':
-        est = SVC(max_iter=int(2e3),tol=1e-3,random_state=12345,kernel='linear',probability=True,)
+        est = SVC(max_iter=-1,tol=1e-3,random_state=12345,kernel='linear',probability=True,)
         
         if decoding:
             clf.append(('estimator',LinearModel(est)))
