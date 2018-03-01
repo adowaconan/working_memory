@@ -97,7 +97,7 @@ if __name__ == '__main__':#  the way to force parellel processing
         clf.append(('scaler',StandardScaler()))
         from sklearn.multioutput import MultiOutputClassifier
         from sklearn.metrics import label_ranking_loss,make_scorer
-        est = SVC(max_iter=-1,tol=1e-3,random_state=12345,kernel='linear',class_weight='balanced',probability=True,)
+        est = SVC(max_iter=int(1e5),tol=1e-3,random_state=12345,kernel='linear',class_weight='balanced',probability=True,)
         clf.append(('estimator',MultiOutputClassifier( LinearModel(est))))
         clf = Pipeline(clf)
         for train,test in tqdm(cv.split(encode_delay_probe,labels[:,0])):
