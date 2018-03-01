@@ -12,12 +12,12 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import Pipeline
-from mne.decoding import Vectorizer
+from mne.decoding import Vectorizer,LinearModel
 from sklearn import metrics
 import pandas as pd
 import numpy as np
 
-def make_clf(vectorized = True,hard_soft='soft',voting=True):
+def make_clf(vectorized = True,hard_soft='soft',voting=True,decoding=True):
     """
     vectorized: to wrap the 3D matrix to 2D
     hard_soft: decision making step for voting classifier
@@ -43,7 +43,7 @@ def make_clf(vectorized = True,hard_soft='soft',voting=True):
     if vectorized:
         clf.append(('vectorize',Vectorizer()))
     clf.append(('scaler',StandardScaler()))
-    if voting:
+    if voting=='vote':
         clf.append(('estimator',VotingClassifier([('SGD',linear_),
                                                   ('SVM',svc),
                                                   ('RF',rf),
@@ -51,6 +51,13 @@ def make_clf(vectorized = True,hard_soft='soft',voting=True):
                                                   ('naive_bayes',bayes),
                                                   ('DNN',NN),
                                                   ('GDB',gdb)],voting=hard_soft,)))
+    elif voting == 'linear':
+        est = SVC(max_iter=int(2e3),tol=1e-3,random_state=12345,kernel='linear',probability=True,)
+        
+        if decoding:
+            clf.append(('estimator',LinearModel(est)))
+        else:
+            clf.append(('estimator',est))
     else:
         clf.append(('estimator',VotingClassifier([('SGD',linear_),
                                                   ('SVM',svc),
