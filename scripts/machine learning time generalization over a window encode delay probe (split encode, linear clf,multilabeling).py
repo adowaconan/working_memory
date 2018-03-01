@@ -20,7 +20,7 @@ if __name__ == '__main__':#  the way to force parellel processing
     import pickle
     import re
     working_dir = 'D:/working_memory/encode_delay_prode_RSA_preprocessing/'
-    saving_dir = 'D:/working_memory/working_memory/results/train_probe_test_encode/full window docoding/'
+    saving_dir = 'D:/working_memory/working_memory/results/train_probe_test_encode/full window docoding multilabeling/'
     if not os.path.exists(saving_dir):
         os.mkdir(saving_dir)
     from glob import glob
@@ -113,6 +113,9 @@ if __name__ == '__main__':#  the way to force parellel processing
             
         scores = np.array(scores)
         patterns = np.array(patterns)
+        info = epochs.info
+        evoked = mne.EvokedArray(-patterns.mean(0).T,info)
+        evoked.save(saving_dir+'split_encode_linear_time_generalization_sub%sload%sday%s-evo.fif'%(sub,load,day))
         pickle.dump([scores,patterns],open(saving_dir+'time_general_en_de_pr_%s_%s_%s.p'%(sub,load,day),'wb'))
         # contour plot
         fig,ax = plt.subplots(figsize=(10,10))

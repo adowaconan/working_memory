@@ -99,6 +99,9 @@ if __name__ == '__main__':#  the way to force parellel processing
             
         scores = np.array(scores)
         patterns = np.array(patterns)
+        info = epochs.info
+        evoked = mne.EvokedArray(-patterns.mean(0).T,info)
+        evoked.save(saving_dir+'split_encode_linear_time_generalization_sub%sload%sday%s-evo.fif'%(sub,load,day))
         pickle.dump([scores,patterns],open(saving_dir+'time_general_en_de_pr_%s_%s_%s.p'%(sub,load,day),'wb'))
         # contour plot
         fig,ax = plt.subplots(figsize=(10,10))
