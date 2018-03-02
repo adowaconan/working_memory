@@ -42,8 +42,8 @@ if __name__ == '__main__':#  the way to force parellel processing
     df = {'sub':[],'image1':[],'image2':[],'method':[],'positive_vs_negative':[],
           'load':[]}
     for e, e_ in zip(epoch_files,event_files):
-    #e = epoch_files[8] # debugging stuff
-    #e_= event_files[8] # debugging stuff
+    #e = epoch_files[0] # debugging stuff
+    #e_= event_files[0] # debugging stuff
     
         epochs = mne.read_epochs(e,preload=True)
         epochs.resample(100)
@@ -112,8 +112,8 @@ if __name__ == '__main__':#  the way to force parellel processing
         patterns = np.array(patterns)
         info = epochs.info
         evoked = mne.EvokedArray(-patterns.mean(0).T,info)
-        evoked.save(saving_dir+'within_cross_modal_time_generalization_sub%sload%sday%s-evo.fif'%(sub,load,day))
-        to_save = {'within':scores_within,'cross':scores_encode}
+        evoked.save(saving_dir+'within_cross_modal_time_generalization_sub%sload%sday%s-ave.fif'%(sub,load,day))
+        to_save = {'within':scores_within,'cross':scores_encode,}
         pickle.dump(to_save,open(saving_dir+'within_cross_modal_time_generalization_sub%sload%sday%s.p'%(sub,load,day),'wb'))
         # plotting, contour
         vmax = np.min([scores_within.flatten().max(),scores_encode.flatten().max()])-.1
@@ -137,8 +137,8 @@ if __name__ == '__main__':#  the way to force parellel processing
         fig.savefig(saving_dir+'within_cross_modal_time_generalization_sub%sload%sday%s.png'%(sub,load,day),dpi=300)
         
         
-        fig,axes = plt.subplots(figsize=(16,7),ncols=2)
-        ax=axes[0]
+        fig = plt.figure(figsize=(16,16))
+        ax=fig.add_subplot(2,2,1)
         CS = ax.contour(scores_within.mean(0),extent=[0,2000,0,2000],cmap=plt.cm.coolwarm,vmin=.5)
         norm= colors.Normalize(vmin=0.5, vmax=CS.vmax)
         sm = plt.cm.ScalarMappable(norm=norm, cmap = CS.cmap)
@@ -147,7 +147,7 @@ if __name__ == '__main__':#  the way to force parellel processing
         cax = driver.append_axes('right',size='5%',pad=0.05)
         fig.colorbar(sm,cax=cax, ticks=CS.levels)
         ax.set(xlabel='test time',ylabel='train time',title='train test within probe')
-        ax=axes[1]
+        ax=fig.add_subplot(222)
         CS = ax.contour(scores_encode.mean(0),extent=[0,2000,0,2000],cmap=plt.cm.coolwarm,vmin=.5)
         norm= colors.Normalize(vmin=0.5, vmax=CS.vmax)
         sm = plt.cm.ScalarMappable(norm=norm, cmap = CS.cmap)
@@ -157,9 +157,27 @@ if __name__ == '__main__':#  the way to force parellel processing
         fig.colorbar(sm,cax=cax, ticks=CS.levels)
         ax.set(xlabel='test time',title='train test within probe')
         fig.suptitle('sub_%s,load_%s,day_%s'%(sub,load,day))
-        fig.tight_layout()
-        fig.savefig(saving_dir+'diff_scale_within_cross_modal_time_generalization_sub%sload%sday%s.png'%(sub,load,day),dpi=300)
         
+        ax=fig.add_subplot(212)
+        decoding_mean = scores_within.mean(0).diagonal()
+        decoding_std = scores_within.std(0).diagonal()
+        kernel_size = 20
+        decoding_mean_smooth = np.convolve(decoding_mean,[1/kernel_size for ii in range(kernel_size)],'same')
+        decoding_std_smooth = np.convolve(decoding_std,[1/kernel_size for ii in range(kernel_size)],'same')
+        ax.plot(evoked.times*1000,decoding_mean,color='k',alpha=1.,
+                label='Decoding scores (uniform-%d kernel smoothed)'%kernel_size)
+        ax.fill_between(evoked.times*1000,
+                        decoding_mean+decoding_std_smooth,
+                        decoding_mean-decoding_std_smooth,
+                        color='red',alpha=0.5,)
+        ax.axhline(0.5,color='blue',alpha=.6,linestyle='--',label='Chance level')
+        ax.set(xlim=(0,2000),xlabel='Time (ms)',ylabel='Classifi.score (AUC)',title='Train-test at same time (Probe)')
+        ax.legend()
+        
+        
+        fig.tight_layout(pad=3.5)
+        fig.savefig(saving_dir+'diff_scale_within_cross_modal_time_generalization_sub%sload%sday%s.png'%(sub,load,day),dpi=300)
+        plt.close('all')
         
         
 
