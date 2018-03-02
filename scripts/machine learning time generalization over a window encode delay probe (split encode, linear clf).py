@@ -35,8 +35,8 @@ if __name__ == '__main__':#  the way to force parellel processing
     missing = np.hstack([np.arange(11,17),[18]])#missing 26  and 64
     
     for e, e_ in zip(epoch_files,event_files):
-    #    e = epoch_files[8] # debugging stuff
-    #    e_= event_files[8] # debugging stuff
+    #    e = epoch_files[0] # debugging stuff
+    #    e_= event_files[0] # debugging stuff
         
         epochs = mne.read_epochs(e,preload=True)
         epochs.resample(100)
@@ -101,6 +101,8 @@ if __name__ == '__main__':#  the way to force parellel processing
         patterns = np.array(patterns)
         info = epochs.info
         evoked = mne.EvokedArray(-patterns.mean(0).T,info)
+        evoked.times = np.linspace(-10,2,evoked.times.shape[0])
+        evoked.copy().crop(-6,0).plot_joint(title='Delay\nProbe - nonProbe')
         evoked.save(saving_dir+'split_encode_linear_time_generalization_sub%sload%sday%s-evo.fif'%(sub,load,day))
         pickle.dump([scores,patterns],open(saving_dir+'time_general_en_de_pr_%s_%s_%s.p'%(sub,load,day),'wb'))
         # contour plot
@@ -127,7 +129,10 @@ if __name__ == '__main__':#  the way to force parellel processing
         fig.savefig(saving_dir+'time generalization_implot_sub_%s,load_%s,day_%s.png'%(sub,load,day),dpi=300)
         
         # diagonal decoding result
-        fig,ax = plt.subplots(figsize=(12,6))
+#        fig = evoked.plot_joint(title = 'Probe - nonProbe',times=[-7,-4,-2,1.25,1.75],)
+#        ax = fig.add_subplot(4,1,3)
+        fig= plt.figure(figsize=(12,12))
+        ax = fig.add_subplot(311)
         times = np.linspace(-8000,2000,scores.shape[-1])
         decoding_mean = scores.mean(0).diagonal()
         decoding_std = scores.std(0).diagonal()
@@ -143,7 +148,24 @@ if __name__ == '__main__':#  the way to force parellel processing
         ax.axvline(0,color='green',linestyle='--',alpha=.5,label='Probe onset');ax.axvline(-6000,color='k',linestyle='--',alpha=.5,label='Delay onset')
         ax.set(xlim=(-8000,2000),xlabel='Time (ms)',ylabel='Classifi.score (AUC)',title='Temporal Decoding\nsub_%s,load_%s,day_%s'%(sub,load,day))
         ax.legend(loc='best')
+        
+        ax = fig.add_subplot(312)
+        evoked.plot(show=False,titles='Probe - nonProbe',axes=ax,spatial_colors=True)
+        
+        times = [-9.7,-6,-4,-2,.3,1.5]
+        idxs = [np.where(np.abs(evoked.times-t )< 0.008)[0][0] for t in times];print(idxs)
+        for time_ in times:
+            ax.axvline(time_*1000,linestyle='-.')
+        
+        axes=[fig.add_subplot(3,len(times),ii+len(times)*2+1) for ii in range(len(times))]
+        for ax,time_,idx in zip(axes,times,idxs):
+            mne.viz.plot_topomap(evoked.data[:,idx],evoked.info,axes=ax,show=False)
+            ax.set(title='%.1f s'%time_)
+        
+        
+        
         fig.savefig(saving_dir+'temporal_decoding_sub_%s,load_%s,day_%s.png'%(sub,load,day),dpi=300)
+        plt.close('all')
 
 
 
