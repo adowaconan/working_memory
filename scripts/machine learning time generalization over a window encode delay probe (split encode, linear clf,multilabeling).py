@@ -96,14 +96,13 @@ if __name__ == '__main__':#  the way to force parellel processing
         clf.append(('vectorize',Vectorizer()))
         clf.append(('scaler',StandardScaler()))
         from sklearn.multioutput import MultiOutputClassifier
-        from sklearn.metrics import label_ranking_loss,make_scorer
         est = SVC(max_iter=int(1e5),tol=1e-3,random_state=12345,kernel='linear',class_weight='balanced',probability=True,)
         clf.append(('estimator',MultiOutputClassifier(est)))# don't have off-the-shelft decoding method
         clf = Pipeline(clf)
         for train,test in tqdm(cv.split(encode_delay_probe,labels[:,0])):
             X = encode_delay_probe[train]
             y = labels[train]
-            time_gen = GeneralizingEstimator(clf,scoring=make_scorer(label_ranking_loss),n_jobs=4)# define the time generalization model
+            time_gen = GeneralizingEstimator(clf,scoring='accuracy',n_jobs=4)# define the time generalization model
             time_gen.fit(X,y)    
             scores_=time_gen.score(encode_delay_probe[test],labels[test])
             scores.append(scores_)

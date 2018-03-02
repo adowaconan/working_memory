@@ -102,7 +102,7 @@ if __name__ == '__main__':#  the way to force parellel processing
         info = epochs.info
         evoked = mne.EvokedArray(-patterns.mean(0).T,info)
         evoked.times = np.linspace(-10,2,evoked.times.shape[0])
-        evoked.copy().crop(-6,0).plot_joint(title='Delay\nProbe - nonProbe')
+#        evoked.copy().crop(-6,0).plot_joint(title='Delay\nProbe - nonProbe')
         evoked.save(saving_dir+'split_encode_linear_time_generalization_sub%sload%sday%s-evo.fif'%(sub,load,day))
         pickle.dump([scores,patterns],open(saving_dir+'time_general_en_de_pr_%s_%s_%s.p'%(sub,load,day),'wb'))
         # contour plot
