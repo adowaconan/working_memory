@@ -85,11 +85,11 @@ if __name__ == '__main__':#  the way to force parellel processing
         labels = np.concatenate((labels1,labels2))
         cv = StratifiedKFold(n_splits=5,shuffle=True,random_state=12345)
 #        clf = make_clf(voting='linear',)# use less computational expensive linear classifiers
-        patterns = []
+#        patterns = []
         scores = []
         # time generalization within probe and cross modal
         clf = []
-        from mne.decoding import Vectorizer,LinearModel
+        from mne.decoding import Vectorizer#,LinearModel
         from sklearn.preprocessing import StandardScaler
         from sklearn.pipeline import Pipeline
         from sklearn.svm import SVC
@@ -98,7 +98,7 @@ if __name__ == '__main__':#  the way to force parellel processing
         from sklearn.multioutput import MultiOutputClassifier
         from sklearn.metrics import label_ranking_loss,make_scorer
         est = SVC(max_iter=int(1e5),tol=1e-3,random_state=12345,kernel='linear',class_weight='balanced',probability=True,)
-        clf.append(('estimator',MultiOutputClassifier( LinearModel(est))))
+        clf.append(('estimator',MultiOutputClassifier(est)))# don't have off-the-shelft decoding method
         clf = Pipeline(clf)
         for train,test in tqdm(cv.split(encode_delay_probe,labels[:,0])):
             X = encode_delay_probe[train]
@@ -108,15 +108,15 @@ if __name__ == '__main__':#  the way to force parellel processing
             scores_=time_gen.score(encode_delay_probe[test],labels[test])
             scores.append(scores_)
             # get the learned patterns within the classifier, which is positive probe (old image) - negative probe (new image)
-            temp_patterns = np.array([get_coef(c,attr='patterns_',inverse_transform=True) for c in time_gen.estimators_])
-            patterns.append(temp_patterns)
+#            temp_patterns = np.array([get_coef(c,attr='patterns_',inverse_transform=True) for c in time_gen.estimators_])
+#            patterns.append(temp_patterns)
             
         scores = np.array(scores)
-        patterns = np.array(patterns)
-        info = epochs.info
-        evoked = mne.EvokedArray(-patterns.mean(0).T,info)
-        evoked.save(saving_dir+'split_encode_linear_time_generalization_sub%sload%sday%s-evo.fif'%(sub,load,day))
-        pickle.dump([scores,patterns],open(saving_dir+'time_general_en_de_pr_%s_%s_%s.p'%(sub,load,day),'wb'))
+#        patterns = np.array(patterns)
+#        info = epochs.info
+#        evoked = mne.EvokedArray(-patterns.mean(0).T,info)
+#        evoked.save(saving_dir+'split_encode_linear_time_generalization_sub%sload%sday%s-evo.fif'%(sub,load,day))
+        pickle.dump([scores],open(saving_dir+'time_general_en_de_pr_%s_%s_%s.p'%(sub,load,day),'wb'))
         # contour plot
         fig,ax = plt.subplots(figsize=(10,10))
         CS = ax.contour(scores.mean(0),extent=[-8000,2000,-8000,2000],cmap=plt.cm.coolwarm,vmin=0.,vmax=.3)
@@ -159,7 +159,7 @@ if __name__ == '__main__':#  the way to force parellel processing
                title='Temporal Decoding\nsub_%s,load_%s,day_%s'%(sub,load,day))
         ax.legend(loc='best')
         fig.savefig(saving_dir+'temporal_decoding_sub_%s,load_%s,day_%s.png'%(sub,load,day),dpi=300)
-
+        plt.close('all')
 
 
 
