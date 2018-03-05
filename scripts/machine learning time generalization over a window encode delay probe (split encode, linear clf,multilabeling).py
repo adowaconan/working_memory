@@ -173,15 +173,15 @@ if __name__ == '__main__':#  the way to force parellel processing
         ax.axvline(-6000,color='k',linestyle='--');ax.axhline(-6000,color='k',linestyle='--')
         
         ax=axes[1]
-        try:
-            vmax = stats.scoreatpercentile(scores_onevsrest.flatten(),99)
-            CS = ax.contour(scores_onevsrest.mean(0),extent=[-8000,2000,-8000,2000],cmap=plt.cm.coolwarm,vmin=0.,vmax=vmax)
-            norm= colors.Normalize(vmin=0., vmax=vmax)
-        except:
-            vmin = stats.scoreatpercentile(scores_onevsrest.flatten(),1)
-            vmax = stats.scoreatpercentile(scores_onevsrest.flatten(),99)
-            CS = ax.contour(scores_onevsrest.mean(0),extent=[-8000,2000,-8000,2000],cmap=plt.cm.coolwarm,vmin=vmin,vmax=vmax)
-            norm= colors.Normalize(vmin=vmin, vmax=vmax)
+#        try:
+#        vmax = stats.scoreatpercentile(scores_onevsrest.flatten(),99)
+#        CS = ax.contour(scores_onevsrest.mean(0),extent=[-8000,2000,-8000,2000],cmap=plt.cm.coolwarm,vmin=0.,vmax=vmax)
+#        norm= colors.Normalize(vmin=0., vmax=vmax)
+#        except:
+        vmin = stats.scoreatpercentile(scores_onevsrest.flatten(),1)
+        vmax = stats.scoreatpercentile(scores_onevsrest.flatten(),99)
+        CS = ax.contour(scores_onevsrest.mean(0),extent=[-8000,2000,-8000,2000],cmap=plt.cm.coolwarm,vmin=vmin,vmax=vmax)
+        norm= colors.Normalize(vmin=vmin, vmax=vmax)
         sm = plt.cm.ScalarMappable(norm=norm, cmap = CS.cmap)
         sm.set_array([])
         driver = make_axes_locatable(ax)
@@ -190,7 +190,7 @@ if __name__ == '__main__':#  the way to force parellel processing
         ax.set(xlabel='test time',title='one vs rest')
         ax.axvline(0,color='k',linestyle='--');ax.axhline(0,color='k',linestyle='--')
         ax.axvline(-6000,color='k',linestyle='--');ax.axhline(-6000,color='k',linestyle='--')
-        fig.suptitle('time generalization\nsub_%s,load_%s,day_%s'(sub,load,day))
+        fig.suptitle('time generalization\nsub_%s,load_%s,day_%s'%(sub,load,day))
         fig.savefig(saving_dir+'time generalization_contour_sub_%s,load_%s,day_%s.png'%(sub,load,day),dpi=500)
         
         # imshow plot
