@@ -34,21 +34,21 @@ event_dir = 'D:\\working_memory\\EVT_load5\\*_probe.csv'
 epoch_files = glob(os.path.join(working_dir,'*%s*-epo.fif'%(condition)))
 event_files = glob(event_dir)
 
-#e = epoch_files[0]
-#e_ = event_files[0]
+#e = epoch_files[2]
+#e_ = event_files[2]
 for e,e_ in zip(epoch_files,event_files):
     epochs = mne.read_epochs(e,preload=True)
     epochs.resample(100)
-    event = pd.read_csv(e_)
+    event = epochs.events
     sub,load,day = re.findall('\d+',e)
     # get the order of the stimulu
     trial_orders = pd.read_excel('D:\\working_memory\\working_memory\\EEG Load 5 and 2 Design Fall 2015.xlsx',sheetname='EEG_Load5_WM',header=None)
     trial_orders.columns = ['load','image1','image2','image3','image4','image5','target','probe']
     trial_orders['target'] = 1- trial_orders['target']
     trial_orders["row"] = np.arange(1,41)
-    original_events = pd.read_csv('D:\\working_memory\\signal detection\\suj%s_wml%s_day%s-photo_WM_TS'%(sub,load,day),sep='\t')
-    original_events = original_events[np.abs(original_events['TriNo']-80)<5]
-    event['trial']=[np.where(original_events['TMS']==time_)[0][0]+1 for time_ in event['tms']]
+    original_events = pd.read_csv(e_)
+    event = pd.DataFrame(event,columns=['tms','on','Recode'])
+    event['trial']=[np.where(original_events['tms']==time_)[0][0]+1 for time_ in event['tms']]
     working_trial_orders = trial_orders.iloc[event['trial']-1]
     
     # split data into encode, delay, and probe
