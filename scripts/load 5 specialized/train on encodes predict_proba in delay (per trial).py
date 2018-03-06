@@ -12,7 +12,7 @@ from helper_functions import make_clf#,prediction_pipeline
 import numpy as np
 import mne
 from matplotlib import pyplot as plt
-#from matplotlib import colors
+from matplotlib import colors
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import pandas as pd
 from mne.decoding import get_coef
@@ -68,9 +68,15 @@ for trial in tqdm(range(images.shape[0]),desc=''):
         preds_.append([clf.predict_proba(X_test[:,ii].reshape(1,-1)) for ii in range(X_test.shape[-1])])
     preds.append(preds_)
 preds = np.array(preds)
+preds = preds.reshape(preds.shape[0],preds.shape[1],preds.shape[2],preds.shape[-1])
+preds_max = preds.argmax(-1)
 
-
-
+cmap = plt.cm.tab10
+bounds = [0,1,2,3,4,5]
+norm = colors.BoundaryNorm(bounds,cmap.N)
+im=plt.imshow(preds_max.mean(0),cmap=cmap,origin='lower',
+              aspect='auto',extent=[0,6000,0,2000],norm=norm)
+plt.colorbar(im,boundaries=bounds,norm=norm,cmap=cmap,ticks=np.arange(1,6))
 
 
 
