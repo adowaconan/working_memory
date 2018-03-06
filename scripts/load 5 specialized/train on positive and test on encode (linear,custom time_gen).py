@@ -37,76 +37,82 @@ event_files = glob(event_dir)
 #e = epoch_files[2]
 #e_ = event_files[2]
 for e,e_ in zip(epoch_files,event_files):
-    epochs = mne.read_epochs(e,preload=True)
-    epochs.resample(100)
-    event = epochs.events
     sub,load,day = re.findall('\d+',e)
-    # get the order of the stimulu
-    trial_orders = pd.read_excel('D:\\working_memory\\working_memory\\EEG Load 5 and 2 Design Fall 2015.xlsx',sheetname='EEG_Load5_WM',header=None)
-    trial_orders.columns = ['load','image1','image2','image3','image4','image5','target','probe']
-    trial_orders['target'] = 1- trial_orders['target']
-    trial_orders["row"] = np.arange(1,41)
-    original_events = pd.read_csv(e_)
-    event = pd.DataFrame(event,columns=['tms','on','Recode'])
-    event['trial']=[np.where(original_events['tms']==time_)[0][0]+1 for time_ in event['tms']]
-    working_trial_orders = trial_orders.iloc[event['trial']-1]
-    
-    # split data into encode, delay, and probe
-    images = epochs.copy().crop(-16,-6).get_data()[:,:,:1000]# all 5 images - 10 seconds
-    delay = epochs.copy().crop(-6,0).get_data()[:,:,:600]# delay - 6 seconds
-    probe = epochs.copy().crop(0,2).get_data()[:,:,:200]# probe - 2 seconds
-    labels = event['Recode'].values # positive probe == 1, negative probe == 0
-    
-    # train a series of classifiers in probe data points
-    cv = StratifiedKFold(n_splits=5,shuffle=True,random_state=12345)
-    clfs = []
-    patterns = []
-    for train,test in tqdm(cv.split(probe,labels),desc='training'):
-        X = probe[train]
-        y = labels[train]
-    #    clfs_ = [make_clf(vectorized=False,voting='linear').fit(X,y)]
-        clfs.append([make_clf(vectorized=False,voting='linear').fit(X[:,:,ii],y) for ii in range(X.shape[-1])])
-        temp_patterns = np.array([get_coef(c,attr='patterns_',inverse_transform=True) for c in clfs[-1]])
-        patterns.append(temp_patterns)
-    patterns=np.array(patterns)
-    # test these classifiers in probe data points
-    scores_within = []
-    
-    for fold,(train,test) in tqdm(enumerate(cv.split(probe,labels)),desc='test within'):
-        X = probe[test]
-        y = labels[test]
+    if os.path.exists(saving_dir+'within_cross_modal_time_generalization_sub%sload%sday%s.p'%(sub,load,day)):
+        to_save = pickle.load(open(saving_dir+'within_cross_modal_time_generalization_sub%sload%sday%s.p'%(sub,load,day),'rb'))
+        scores_within,scores_cross=to_save['within'],to_save['cross']
+        evoked = mne.read_evokeds(saving_dir+'within_cross_modal_time_generalization_sub%sload%sday%s-ave.fif'%(sub,load,day))[0]
+    else:
+        epochs = mne.read_epochs(e,preload=True)
+        epochs.resample(100)
+        event = epochs.events
         
-        scores_ = []
-        for clf in clfs[fold]:
-            scores_temp = [metrics.roc_auc_score(y,clf.predict_proba(X[:,:,ii])[:,-1]) for ii in range(X.shape[-1])]
-            scores_.append(scores_temp)
-        scores_within.append(scores_)
-    scores_within = np.array(scores_within)
+        # get the order of the stimulu
+        trial_orders = pd.read_excel('D:\\working_memory\\working_memory\\EEG Load 5 and 2 Design Fall 2015.xlsx',sheetname='EEG_Load5_WM',header=None)
+        trial_orders.columns = ['load','image1','image2','image3','image4','image5','target','probe']
+        trial_orders['target'] = 1- trial_orders['target']
+        trial_orders["row"] = np.arange(1,41)
+        original_events = pd.read_csv(e_)
+        event = pd.DataFrame(event,columns=['tms','on','Recode'])
+        event['trial']=[np.where(original_events['tms']==time_)[0][0]+1 for time_ in event['tms']]
+        working_trial_orders = trial_orders.iloc[event['trial']-1]
+        
+        # split data into encode, delay, and probe
+        images = epochs.copy().crop(-16,-6).get_data()[:,:,:1000]# all 5 images - 10 seconds
+        delay = epochs.copy().crop(-6,0).get_data()[:,:,:600]# delay - 6 seconds
+        probe = epochs.copy().crop(0,2).get_data()[:,:,:200]# probe - 2 seconds
+        labels = event['Recode'].values # positive probe == 1, negative probe == 0
+        
+        # train a series of classifiers in probe data points
+        cv = StratifiedKFold(n_splits=5,shuffle=True,random_state=12345)
+        clfs = []
+        patterns = []
+        for train,test in tqdm(cv.split(probe,labels),desc='training'):
+            X = probe[train]
+            y = labels[train]
+        #    clfs_ = [make_clf(vectorized=False,voting='linear').fit(X,y)]
+            clfs.append([make_clf(vectorized=False,voting='linear').fit(X[:,:,ii],y) for ii in range(X.shape[-1])])
+            temp_patterns = np.array([get_coef(c,attr='patterns_',inverse_transform=True) for c in clfs[-1]])
+            patterns.append(temp_patterns)
+        patterns=np.array(patterns)
+        # test these classifiers in probe data points
+        scores_within = []
+        
+        for fold,(train,test) in tqdm(enumerate(cv.split(probe,labels)),desc='test within'):
+            X = probe[test]
+            y = labels[test]
+            
+            scores_ = []
+            for clf in clfs[fold]:
+                scores_temp = [metrics.roc_auc_score(y,clf.predict_proba(X[:,:,ii])[:,-1]) for ii in range(X.shape[-1])]
+                scores_.append(scores_temp)
+            scores_within.append(scores_)
+        scores_within = np.array(scores_within)
+        
+        # test these classifier in encode, but we need to make the test data and test labels first
+        test_data = images.reshape(-1,61,200)
+        test_labels = working_trial_orders[['image1','image2','image3','image4','image5']].values == working_trial_orders['probe'].values[:,np.newaxis]
+        test_labels = test_labels.flatten()
+        
+        scores_cross = []
+        for fold in tqdm(range(5),desc='test cross'):
+            X = test_data
+            y = test_labels
+            scores_ = []
+            for clf in clfs[fold]:
+                scores_temp = [metrics.roc_auc_score(y,clf.predict_proba(X[:,:,ii])[:,-1]) for ii in range(X.shape[-1])]
+                scores_.append(scores_temp)
+            scores_cross.append(scores_)
+        scores_cross = np.array(scores_cross)
+        to_save = {'within':scores_within,'cross':scores_cross}
+        pickle.dump(to_save,open(saving_dir+'within_cross_modal_time_generalization_sub%sload%sday%s.p'%(sub,load,day),'wb'))
+        info = epochs.info
+        evoked = mne.EvokedArray(-patterns.mean(0).T,info)
+        evoked.times = np.linspace(0,2,probe.shape[-1])
+        evoked.save(saving_dir+'within_cross_modal_time_generalization_sub%sload%sday%s-ave.fif'%(sub,load,day))
     
-    # test these classifier in encode, but we need to make the test data and test labels first
-    test_data = images.reshape(-1,61,200)
-    test_labels = working_trial_orders[['image1','image2','image3','image4','image5']].values == working_trial_orders['probe'].values[:,np.newaxis]
-    test_labels = test_labels.flatten()
     
-    scores_cross = []
-    for fold in tqdm(range(5),desc='test cross'):
-        X = test_data
-        y = test_labels
-        scores_ = []
-        for clf in clfs[fold]:
-            scores_temp = [metrics.roc_auc_score(y,clf.predict_proba(X[:,:,ii])[:,-1]) for ii in range(X.shape[-1])]
-            scores_.append(scores_temp)
-        scores_cross.append(scores_)
-    scores_cross = np.array(scores_cross)
-    to_save = {'within':scores_within,'cross':scores_cross}
-    pickle.dump(to_save,open(saving_dir+'within_cross_modal_time_generalization_sub%sload%sday%s.p'%(sub,load,day),'wb'))
-    info = epochs.info
-    evoked = mne.EvokedArray(-patterns.mean(0).T,info)
-    evoked.times = np.linspace(0,2,probe.shape[-1])
-    evoked.save(saving_dir+'within_cross_modal_time_generalization_sub%sload%sday%s-ave.fif'%(sub,load,day))
-    
-    
-    fig = plt.figure(figsize=(12,26))
+    fig = plt.figure(figsize=(15,26))
     # subplot row 1 - temporal generalization
     ax=fig.add_subplot(421)
     vmax=[.7,.6]
@@ -150,7 +156,8 @@ for e,e_ in zip(epoch_files,event_files):
     mne.viz.plot_evoked_topomap(evoked,times=np.array([250,500,750,1000,1250,1500,1750])/1000,
                                     show=False,axes=axes,colorbar=False)
     fig.savefig(saving_dir+'diff_scale_within_cross_modal_time_generalization_sub%sload%sday%s.png'%(sub,load,day),
-                dpi=400)
+                dpi=400,bbox_inches='tight')
+    plt.close('all')
 
 
 

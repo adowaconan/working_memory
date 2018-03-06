@@ -169,25 +169,24 @@ if __name__ == '__main__':#  the way to force parellel processing
         fig.savefig(saving_dir+'within_cross_modal_time_generalization_sub%sload%sday%s.png'%(sub,load,day),dpi=300)
         
         
+        
         fig = plt.figure(figsize=(15,26))
-        ax=fig.add_subplot(4,2,1)
-        CS = ax.contour(scores_within.mean(0),extent=[0,2000,0,2000],cmap=plt.cm.coolwarm,vmin=.5)
-        norm= colors.Normalize(vmin=0.5, vmax=CS.vmax)
-        sm = plt.cm.ScalarMappable(norm=norm, cmap = CS.cmap)
-        sm.set_array([])
+        # subplot row 1 - temporal generalization
+        ax=fig.add_subplot(421)
+        vmax=[.7,.6]
+        im = ax.imshow(scores_within.mean(0),extent=[0,2000,0,2000],origin='lower',aspect='auto',
+                       cmap=plt.cm.coolwarm,vmin=.5,vmax=vmax[0])
         driver = make_axes_locatable(ax)
         cax = driver.append_axes('right',size='5%',pad=0.05)
-        fig.colorbar(sm,cax=cax, ticks=CS.levels)
+        fig.colorbar(im,cax=cax, )
         ax.set(xlabel='test time',ylabel='train time',title='train test within probe')
         ax=fig.add_subplot(422)
-        CS = ax.contour(scores_cross.mean(0),extent=[0,2000,0,2000],cmap=plt.cm.coolwarm,vmin=.5)
-        norm= colors.Normalize(vmin=0.5, vmax=CS.vmax)
-        sm = plt.cm.ScalarMappable(norm=norm, cmap = CS.cmap)
-        sm.set_array([])
+        im = ax.imshow(scores_cross.mean(0),extent=[0,2000,0,2000],origin='lower',aspect='auto',
+                       cmap=plt.cm.coolwarm,vmin=.5,vmax=vmax[1])
         driver = make_axes_locatable(ax)
         cax = driver.append_axes('right',size='5%',pad=0.05)
-        fig.colorbar(sm,cax=cax, ticks=CS.levels)
-        ax.set(xlabel='test time',title='train test within probe')
+        fig.colorbar(im,cax=cax, )
+        ax.set(xlabel='test time',title='train on probe test on encode')
         fig.suptitle('sub_%s,load_%s,day_%s'%(sub,load,day))
         
         ax=fig.add_subplot(412)

@@ -34,8 +34,8 @@ event_dir = 'D:\\working_memory\\EVT_load5\\*_probe.csv'
 epoch_files = glob(os.path.join(working_dir,'*%s*-epo.fif'%(condition)))
 event_files = glob(event_dir)
 
-e = epoch_files[0]
-e_ = event_files[0]
+e = epoch_files[9]
+e_ = event_files[9]
 
 epochs = mne.read_epochs(e,preload=True)
 epochs.resample(100)
@@ -79,11 +79,12 @@ im=plt.imshow(preds_max.mean(0),cmap=cmap,origin='lower',
 plt.colorbar(im,boundaries=bounds,norm=norm,cmap=cmap,ticks=np.arange(1,6))
 
 
+plt.imshow(preds_max.std(0),origin='lower',aspect='auto',vmin=.8);plt.colorbar()
 
-
-
-
-
+clf = make_clf(vectorized=True,voting='linear',decoding=False)
+X = images.reshape(images.shape[0]*5,61,200)
+labels = np.tile(np.arange(5),images.shape[0])
+a,b,c = 
 
 
 
