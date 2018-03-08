@@ -199,18 +199,44 @@ if __name__ == '__main__':
     scores_cross_load2 = np.array(scores_cross_load2)
     pickle.dump(scores_within_load5,open(saving_dir+'scores_within_load5','wb'))
     pickle.dump(scores_cross_load2,open(saving_dir+'scores_cross_load2','wb'))
-    
-    fig,ax = plt.subplots(figsize=(10,10))
+    ###############################################################################################################################################
+    ###########################   plotting   ######################################################################################################
+    ###############################################################################################################################################
+    fig,axes = plt.subplots(figsize=(20,20),nrows=2,ncols=2)
+    ax = axes[0][0] # train-test in load 2
     im = ax.imshow(scores_within_load2.mean(0),origin='lower',aspect='auto',extent=[0,6000,0,6000],vmin=.5,vmax=.65,cmap=plt.cm.RdBu_r)
-    driver = make_axes_locatable(ax)
-    cax = driver.append_axes('right',size='5%',pad=0.05)
-    fig.colorbar(im,cax=cax, )
-    ax.set(xlabel='test time (ms)',ylabel='train time (ms)',title='Decode Correct VS. Incorrect Responses [Load 2]\nTrain-test at Delay (6000 ms)')
+    ax.set(ylabel='load2\n\n\ntrain time (ms)',title='Load 2')
+    
+    ax = axes[0][1] # train in load 2 and test in load 5
+    im = ax.imshow(scores_cross_load5.mean(0),origin='lower',aspect='auto',extent=[0,6000,0,6000],vmin=.5,vmax=.65,cmap=plt.cm.RdBu_r)
+    ax.set(title='load 5')
+    
+    ax = axes[1][0] # train in load 5 and test in load 2
+    im = ax.imshow(scores_cross_load2.mean(0),origin='lower',aspect='auto',extent=[0,6000,0,6000],vmin=.5,vmax=.65,cmap=plt.cm.RdBu_r)
+    ax.set(ylabel='load5\n\n\ntrain time (ms)',xlabel='test time (ms)',)
+    
+    ax = axes[1][1]# train in load 5 and test in load 5
+    im = ax.imshow(scores_within_load5.mean(0),origin='lower',aspect='auto',extent=[0,6000,0,6000],vmin=.5,vmax=.65,cmap=plt.cm.RdBu_r)
+    ax.set(xlabel='test time (ms)')
+    
+    fig.subplots_adjust(bottom=0.1, top=0.96, left=0.1, right=0.8,
+                    wspace=0.02, hspace=0.02)
+    # add an axes, lower left corner in [0.83, 0.1] measured in figure coordinate with 
+    # axes width 0.02 and height 0.8
+    cb_ax = fig.add_axes([0.83, 0.1, 0.02, 0.8])
+    cbar = fig.colorbar(im, cax=cb_ax)
+    fig.suptitle('Cross Condition Temporal Generalization Decoding\nCorrect VS. Incorrect')
+    
     
     # temporal decoding of load 2
+    # temporal decoding of load 5
     time_dec = SlidingEstimator(clf,scoring='roc_auc')
     sc2 = cross_val_multiscore(time_dec,X_load2,labels_load2,cv=cv,n_jobs=4)
-    fig, ax = plt.subplots(figsize=(20,6))
+    time_dec = SlidingEstimator(clf,scoring='roc_auc')
+    sc5 = cross_val_multiscore(time_dec,X_load5,labels_load5,cv=cv,n_jobs=4)
+    
+    fig, axes = plt.subplots(figsize=(20,12),nrows=2)
+    ax = axes[0]
     ax.plot(np.linspace(0,6000,sc2.shape[1]),sc2.mean(0),color='k',alpha=1.,label='Decoding Scores')
     ax.fill_between(np.linspace(0,6000,sc2.shape[1]),
                                 sc2.mean(0)-sc2.std(0)/np.sqrt(10),
@@ -219,20 +245,8 @@ if __name__ == '__main__':
     ax.legend(loc='best')
     ax.axhline(0.5,linestyle='--',color='blue',alpha=.7,label='Chance Level')
     ax.set(xlabel='Time (ms)',ylabel='Classifi.Score (ROC AUC)',title='Temporal Decoding [load 2]',xlim=(0,6000))
-    
-    
-    
-    fig,ax = plt.subplots(figsize=(10,10))
-    im = ax.imshow(scores_within_load5.mean(0),origin='lower',aspect='auto',extent=[0,6000,0,6000],vmin=.5,vmax=.65,cmap=plt.cm.RdBu_r)
-    driver = make_axes_locatable(ax)
-    cax = driver.append_axes('right',size='5%',pad=0.05)
-    fig.colorbar(im,cax=cax, )
-    ax.set(xlabel='test time (ms)',ylabel='train time (ms)',title='Decode Correct VS. Incorrect Responses [Load 5]\nTrain-test at Delay (6000 ms)')
-    
-    # temporal decoding of load 5
-    time_dec = SlidingEstimator(clf,scoring='roc_auc')
-    sc5 = cross_val_multiscore(time_dec,X_load5,labels_load5,cv=cv,n_jobs=4)
-    fig, ax = plt.subplots(figsize=(20,6))
+
+    ax = axes[1]
     ax.plot(np.linspace(0,6000,sc5.shape[1]),sc5.mean(0),color='k',alpha=1.,label='Decoding Scores')
     ax.fill_between(np.linspace(0,6000,sc5.shape[1]),
                                 sc5.mean(0)-sc5.std(0)/np.sqrt(10),
@@ -243,10 +257,31 @@ if __name__ == '__main__':
     ax.set(xlabel='Time (ms)',ylabel='Classifi.Score (ROC AUC)',title='Temporal Decoding [load 5]',xlim=(0,6000))
 
     
-
-
-
-
+    # patterns in load 2
+    patterns_2 = []
+    for train, test in tqdm(cv.split(X_load2,labels_load2),desc='load2'):
+        X = X_load2[train]
+        y = labels_load2[train]
+        clf = make_pipeline(vec,sm,LinearModel(est))
+        clfs = [make_pipeline(vec,sm,LinearModel(est)).fit(X[:,:,ii],y) for ii in range(X.shape[-1])]
+        patterns_ = [get_coef(clfs[ii],attr='patterns_',inverse_transform=True) for ii in range(X.shape[-1])]
+        patterns_2.append(np.array(patterns_))
+    # patterns in load 5
+    patterns_5 = []
+    for train, test in tqdm(cv.split(X_load5,labels_load5),desc='load5'):
+        X = X_load5[train]
+        y = labels_load5[train]
+        clf = make_pipeline(vec,sm,LinearModel(est))
+        clfs = [make_pipeline(vec,sm,LinearModel(est)).fit(X[:,:,ii],y) for ii in range(X.shape[-1])]
+        patterns_ = [get_coef(clfs[ii],attr='patterns_',inverse_transform=True) for ii in range(X.shape[-1])]
+        patterns_5.append(np.array(patterns_))
+    
+    temp_ = mne.read_epochs('D:\\working_memory\\encode_delay_prode_RSA_preprocessing\\sub_11_load2_day2_encode_delay_probe-epo.fif',
+                            preload=False)
+    info = temp_.info
+    
+    evoked_2 = mne.EvokedArray(patterns_2.mean(0),info=info)
+    evoked_5 = mne.EvokedArray(patterns_5.mean(0),info=info)
 
 
 
