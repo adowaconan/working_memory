@@ -151,7 +151,7 @@ if __name__ == '__main__':
     data = pickle.load(open(saving_dir+'delay_performance_25','rb'))
     X_load2,X_load5,labels_load2,labels_load5=data['load2'],data['load5'],data['l2'],data['l5']
     
-    cv = StratifiedShuffleSplit(n_splits=10,random_state=12345,test_size=.1)
+    cv = StratifiedShuffleSplit(n_splits=10,random_state=12345,test_size=.4)
     
     vec = Vectorizer()
     sm = under_sampling.RandomUnderSampler(random_state=12345)
@@ -176,7 +176,7 @@ if __name__ == '__main__':
     for train,test in cv.split(X_load2,labels_load2):
         time_gen = GeneralizingEstimator(clf,scoring='roc_auc',n_jobs=4)
         time_gen.fit(X_load2[train],labels_load2[train])
-        scores_=time_gen.score(X_load2,labels_load2)
+        scores_=time_gen.score(X_load2[test],labels_load2[test])
         scores__ = time_gen.score(X_load5,labels_load5)
         scores_within_load2.append(scores_)
         scores_cross_load5.append(scores__)
@@ -191,7 +191,7 @@ if __name__ == '__main__':
     for train,test in cv.split(X_load5,labels_load5):
         time_gen = GeneralizingEstimator(clf,scoring='roc_auc',n_jobs=4)
         time_gen.fit(X_load5[train],labels_load5[train])
-        scores_=time_gen.score(X_load5,labels_load5)
+        scores_=time_gen.score(X_load5[test],labels_load5[test])
         scores__ = time_gen.score(X_load2,labels_load2)
         scores_within_load5.append(scores_)
         scores_cross_load2.append(scores__)
@@ -255,7 +255,7 @@ if __name__ == '__main__':
     ax.legend(loc='best')
     ax.axhline(0.5,linestyle='--',color='blue',alpha=.7,label='Chance Level')
     ax.set(xlabel='Time (ms)',ylabel='Classifi.Score (ROC AUC)',title='Temporal Decoding [load 5]',xlim=(0,6000))
-
+    fig.savefig(saving_dir+'Temporal Decoding.png',dpi=600)
     
     # patterns in load 2
     patterns_2 = []
@@ -280,10 +280,16 @@ if __name__ == '__main__':
                             preload=False)
     info = temp_.info
     
-    evoked_2 = mne.EvokedArray(patterns_2.mean(0),info=info)
-    evoked_5 = mne.EvokedArray(patterns_5.mean(0),info=info)
-
-
+    patterns_2 = np.array(patterns_2)
+    patterns_5 = np.array(patterns_5)
+    evoked_2 = mne.EvokedArray(patterns_2.mean(0).T/1e6,info=info)
+    evoked_5 = mne.EvokedArray(patterns_5.mean(0).T/1e6,info=info)
+    evoked_2.times = np.linspace(0,6,600)
+    evoked_5.times = np.linspace(0,6,600)
+    fig = evoked_2.plot_joint(title='load 2 patterns/nCorrect - Incorrect',times=np.arange(1,6,1))
+    fig.savefig(saving_dir+'pattern load 2.png',dpi=400)
+    fig = evoked_5.plot_joint(title='load 5 patterns/nCorrect - Incorrect',times=np.arange(1,6,1))
+    fig.savefig(saving_dir+'pattern load 5.png',dpi=400)
 
 
 
