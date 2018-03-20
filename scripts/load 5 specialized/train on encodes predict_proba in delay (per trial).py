@@ -151,7 +151,7 @@ if __name__ == '__main__':
     data = pickle.load(open(saving_dir+'delay_performance_25','rb'))
     X_load2,X_load5,labels_load2,labels_load5=data['load2'],data['load5'],data['l2'],data['l5']
     
-    cv = StratifiedShuffleSplit(n_splits=10,random_state=12345,test_size=.4)
+    cv = StratifiedShuffleSplit(n_splits=10,random_state=12345,test_size=.35)
     
     vec = Vectorizer()
     sm = under_sampling.RandomUnderSampler(random_state=12345)
@@ -171,6 +171,13 @@ if __name__ == '__main__':
     print(metrics.classification_report(labels_load2,clf.predict(X_load2)))    
     print(metrics.roc_auc_score(labels_load2,clf.predict(X_load2)))
     # train test in load 2
+    cv = StratifiedShuffleSplit(n_splits=10,random_state=12345,test_size=.35)
+    
+    vec = Vectorizer()
+    sm = under_sampling.RandomUnderSampler(random_state=12345)
+    est = SVC(kernel='linear',class_weight='balanced',random_state=12345)
+    
+    clf = make_pipeline(vec,sm,est)
     scores_within_load2 = []
     scores_cross_load5  = []
     for train,test in cv.split(X_load2,labels_load2):
@@ -202,34 +209,84 @@ if __name__ == '__main__':
     ###############################################################################################################################################
     ###########################   plotting   ######################################################################################################
     ###############################################################################################################################################
-    fig,axes = plt.subplots(figsize=(20,20),nrows=2,ncols=2)
+    scores_within_load2 = pickle.load(open(saving_dir+'scores_within_load2.p','rb'))
+    scores_cross_load5 = pickle.load(open(saving_dir+'scores_cross_load5','rb'))
+    scores_within_load5 = pickle.load(open(saving_dir+'scores_within_load5','rb'))
+    scores_cross_load2 = pickle.load(open(saving_dir+'scores_cross_load2','rb'))
+    vmax = .57
+    fig,axes = plt.subplots(figsize=(25,20),nrows=2,ncols=2)
     ax = axes[0][0] # train-test in load 2
-    im = ax.imshow(scores_within_load2.mean(0),origin='lower',aspect='auto',extent=[0,6000,0,6000],vmin=.5,vmax=.65,cmap=plt.cm.RdBu_r)
-    ax.set(ylabel='load2\n\n\ntrain time (ms)',title='Load 2')
+    im = ax.imshow(scores_within_load2.mean(0),origin='lower',aspect='auto',extent=[0,6000,0,6000],
+                   vmin=.5,vmax=vmax,cmap=plt.cm.RdBu_r)
+    ax.set(ylabel='Train in load2\n\n\ntrain time (ms)',title='Test in Load 2',xticks=[])
     
     ax = axes[0][1] # train in load 2 and test in load 5
-    im = ax.imshow(scores_cross_load5.mean(0),origin='lower',aspect='auto',extent=[0,6000,0,6000],vmin=.5,vmax=.65,cmap=plt.cm.RdBu_r)
-    ax.set(title='load 5')
+    im = ax.imshow(scores_cross_load5.mean(0),origin='lower',aspect='auto',extent=[0,6000,0,6000],
+                   vmin=.5,vmax=vmax,cmap=plt.cm.RdBu_r)
+    ax.set(title='Test in load 5',yticks=[],xticks=[])
     
     ax = axes[1][0] # train in load 5 and test in load 2
-    im = ax.imshow(scores_cross_load2.mean(0),origin='lower',aspect='auto',extent=[0,6000,0,6000],vmin=.5,vmax=.65,cmap=plt.cm.RdBu_r)
-    ax.set(ylabel='load5\n\n\ntrain time (ms)',xlabel='test time (ms)',)
+    im = ax.imshow(scores_cross_load2.mean(0),origin='lower',aspect='auto',extent=[0,6000,0,6000],
+                   vmin=.5,vmax=vmax,cmap=plt.cm.RdBu_r)
+    ax.set(ylabel='Train in load5\n\n\ntrain time (ms)',xlabel='test time (ms)',)
     
     ax = axes[1][1]# train in load 5 and test in load 5
-    im = ax.imshow(scores_within_load5.mean(0),origin='lower',aspect='auto',extent=[0,6000,0,6000],vmin=.5,vmax=.65,cmap=plt.cm.RdBu_r)
-    ax.set(xlabel='test time (ms)')
-    
+    im = ax.imshow(scores_within_load5.mean(0),origin='lower',aspect='auto',extent=[0,6000,0,6000],
+                   vmin=.5,vmax=vmax,cmap=plt.cm.RdBu_r)
+    ax.set(xlabel='test time (ms)',yticks=[])
+    fig.tight_layout()    
     fig.subplots_adjust(bottom=0.1, top=0.96, left=0.1, right=0.8,
                     wspace=0.02, hspace=0.02)
     # add an axes, lower left corner in [0.83, 0.1] measured in figure coordinate with 
     # axes width 0.02 and height 0.8
-    cb_ax = fig.add_axes([0.83, 0.1, 0.02, 0.8])
+    cb_ax = fig.add_axes([.83, 0.1, 0.02, 0.8])
     cbar = fig.colorbar(im, cax=cb_ax)
+
     fig.suptitle('Cross Condition Temporal Generalization Decoding\nCorrect VS. Incorrect')
+    fig.savefig(saving_dir+'Cross Condition Temporal Generalization Decoding_Correct VS Incorrect.png',dpi=600)
+    #### interpolate
+    vmax = .57
+    interpolate = 'hamming'
+    fig,axes = plt.subplots(figsize=(25,20),nrows=2,ncols=2)
+    ax = axes[0][0] # train-test in load 2
+    im = ax.imshow(scores_within_load2.mean(0),origin='lower',aspect='auto',extent=[0,6000,0,6000],
+                   vmin=.5,vmax=vmax,cmap=plt.cm.RdBu_r,interpolation=interpolate)
+    ax.set(ylabel='Train in load2\n\n\ntrain time (ms)',title='Test in Load 2',xticks=[])
+    
+    ax = axes[0][1] # train in load 2 and test in load 5
+    im = ax.imshow(scores_cross_load5.mean(0),origin='lower',aspect='auto',extent=[0,6000,0,6000],
+                   vmin=.5,vmax=vmax,cmap=plt.cm.RdBu_r,interpolation=interpolate)
+    ax.set(title='Test in load 5',yticks=[],xticks=[])
+    
+    ax = axes[1][0] # train in load 5 and test in load 2
+    im = ax.imshow(scores_cross_load2.mean(0),origin='lower',aspect='auto',extent=[0,6000,0,6000],
+                   vmin=.5,vmax=vmax,cmap=plt.cm.RdBu_r,interpolation=interpolate)
+    ax.set(ylabel='Train in load5\n\n\ntrain time (ms)',xlabel='test time (ms)',)
+    
+    ax = axes[1][1]# train in load 5 and test in load 5
+    im = ax.imshow(scores_within_load5.mean(0),origin='lower',aspect='auto',extent=[0,6000,0,6000],
+                   vmin=.5,vmax=vmax,cmap=plt.cm.RdBu_r,interpolation=interpolate)
+    ax.set(xlabel='test time (ms)',yticks=[])
+    fig.tight_layout()    
+    fig.subplots_adjust(bottom=0.1, top=0.96, left=0.1, right=0.8,
+                    wspace=0.02, hspace=0.02)
+    # add an axes, lower left corner in [0.83, 0.1] measured in figure coordinate with 
+    # axes width 0.02 and height 0.8
+    cb_ax = fig.add_axes([.83, 0.1, 0.02, 0.8])
+    cbar = fig.colorbar(im, cax=cb_ax)
+
+    fig.suptitle('Cross Condition Temporal Generalization Decoding\nCorrect VS. Incorrect')
+    fig.savefig(saving_dir+'Cross Condition Temporal Generalization Decoding_Correct VS Incorrect (interpolate).png',dpi=600)
     
     
     # temporal decoding of load 2
     # temporal decoding of load 5
+    cv = StratifiedShuffleSplit(n_splits=10,random_state=12345,test_size=.35)
+    vec = Vectorizer()
+    sm = under_sampling.RandomUnderSampler(random_state=12345)
+    est = SVC(kernel='linear',class_weight='balanced',random_state=12345)
+    
+    clf = make_pipeline(vec,sm,est)
     time_dec = SlidingEstimator(clf,scoring='roc_auc')
     sc2 = cross_val_multiscore(time_dec,X_load2,labels_load2,cv=cv,n_jobs=4)
     time_dec = SlidingEstimator(clf,scoring='roc_auc')
